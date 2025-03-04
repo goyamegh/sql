@@ -91,10 +91,12 @@ import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
+import org.opensearch.sql.spark.directquery.DirectQueryExecutorService;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.rest.RestDirectQueryManagementAction;
+import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
 import org.opensearch.sql.spark.scheduler.job.ScheduledAsyncQueryJobRunner;
 import org.opensearch.sql.spark.scheduler.parser.OpenSearchScheduleQueryJobRequestParser;
@@ -257,11 +259,14 @@ public class SQLPlugin extends Plugin
             injector.getInstance(FlintIndexOpFactory.class));
     AsyncQueryExecutorService asyncQueryExecutorService =
         injector.getInstance(AsyncQueryExecutorService.class);
+    // Passing the service to Transport actions
+    DirectQueryExecutorService directQueryExecutorService =
+        injector.getInstance(DirectQueryExecutorService.class);
     ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
     return ImmutableList.of(
-        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener, pluginSettings);
+        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener, pluginSettings, directQueryExecutorService);
   }
 
   @Override
@@ -340,11 +345,6 @@ public class SQLPlugin extends Plugin
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
   }
-
-
-//   private DataSourceClientFactory dataSourceClientFactory(DataSourceService dataSourceService) {
-//     return new DataSourceClientFactory(dataSourceService, pluginSettings);
-//   }
 
   @Override
   public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {

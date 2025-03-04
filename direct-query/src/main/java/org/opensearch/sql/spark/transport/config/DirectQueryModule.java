@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.transport.config;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.query.QueryHandler;
@@ -25,13 +26,12 @@ public class DirectQueryModule extends AbstractModule {
   protected void configure() {
     // Add an explicit binding for DirectQueryExecutorService
     bind(DirectQueryExecutorService.class).to(DirectQueryExecutorServiceImpl.class).in(Singleton.class);
-    
-    // Explicitly bind DataSourceClientFactory
-    // bind(DataSourceClientFactory.class).toProvider(() -> {
-    //   return new DataSourceClientFactory(
-    //       getProvider(DataSourceService.class).get(), 
-    //       getProvider(org.opensearch.sql.common.setting.Settings.class).get());
-    // }).in(Singleton.class);
+  }
+
+  @Provides
+  @Singleton
+  public DataSourceClientFactory dataSourceClientFactory(DataSourceService dataSourceService, Settings settings) {
+    return new DataSourceClientFactory(dataSourceService, settings);
   }
 
   @Provides
