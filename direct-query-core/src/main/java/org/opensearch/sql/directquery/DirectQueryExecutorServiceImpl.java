@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.directquery;
+package org.opensearch.sql.directquery;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -13,8 +13,8 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryResponse;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 import org.opensearch.transport.TransportService;
 
 public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorService {

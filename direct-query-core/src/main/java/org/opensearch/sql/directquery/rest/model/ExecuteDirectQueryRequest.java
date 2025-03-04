@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.rest.model;
+package org.opensearch.sql.directquery.rest.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

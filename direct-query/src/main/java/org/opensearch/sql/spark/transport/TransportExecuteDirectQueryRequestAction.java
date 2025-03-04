@@ -10,13 +10,13 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryResponse;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.DirectQueryExecutorService;
+import org.opensearch.sql.directquery.DirectQueryExecutorServiceImpl;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 import org.opensearch.sql.spark.transport.model.ExecuteDirectQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
-import org.opensearch.sql.spark.directquery.DirectQueryExecutorService;
-import org.opensearch.sql.spark.directquery.DirectQueryExecutorServiceImpl;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 

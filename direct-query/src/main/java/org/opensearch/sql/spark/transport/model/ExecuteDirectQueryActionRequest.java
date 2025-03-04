@@ -10,7 +10,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 
 public class ExecuteDirectQueryActionRequest extends ActionRequest {
   private final ExecuteDirectQueryRequest directQueryRequest;

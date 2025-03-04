@@ -9,7 +9,7 @@ import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedTok
 
 import lombok.experimental.UtilityClass;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 
 @UtilityClass
 public class DirectQueryRequestConverter {

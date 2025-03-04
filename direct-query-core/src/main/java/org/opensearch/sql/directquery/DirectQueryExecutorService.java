@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.directquery;
+package org.opensearch.sql.directquery;
 
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryResponse;
+
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 
 public interface DirectQueryExecutorService {
 

@@ -12,9 +12,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasource.query.QueryHandler;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 
 public class PrometheusQueryHandler implements QueryHandler {

@@ -13,8 +13,8 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.query.QueryHandler;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
-import org.opensearch.sql.spark.directquery.DirectQueryExecutorService;
-import org.opensearch.sql.spark.directquery.DirectQueryExecutorServiceImpl;
+import org.opensearch.sql.directquery.DirectQueryExecutorService;
+import org.opensearch.sql.directquery.DirectQueryExecutorServiceImpl;
 import org.opensearch.sql.prometheus.query.PrometheusQueryHandler;
 
 import java.util.ArrayList;
