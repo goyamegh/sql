@@ -1,0 +1,60 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.spark.transport.config;
+
+import org.opensearch.common.inject.AbstractModule;
+import org.opensearch.common.inject.Provides;
+import org.opensearch.common.inject.Singleton;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.client.DataSourceClientFactory;
+import org.opensearch.sql.datasource.query.QueryHandler;
+import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
+import org.opensearch.sql.spark.directquery.DirectQueryExecutorService;
+import org.opensearch.sql.spark.directquery.DirectQueryExecutorServiceImpl;
+import org.opensearch.sql.prometheus.query.PrometheusQueryHandler;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class DirectQueryModule extends AbstractModule {
+
+  @Override
+  protected void configure() {
+    // Add an explicit binding for DirectQueryExecutorService
+    bind(DirectQueryExecutorService.class).to(DirectQueryExecutorServiceImpl.class).in(Singleton.class);
+    
+    // Explicitly bind DataSourceClientFactory
+    // bind(DataSourceClientFactory.class).toProvider(() -> {
+    //   return new DataSourceClientFactory(
+    //       getProvider(DataSourceService.class).get(), 
+    //       getProvider(org.opensearch.sql.common.setting.Settings.class).get());
+    // }).in(Singleton.class);
+  }
+
+  @Provides
+  @Singleton
+  public List<QueryHandler> queryHandlers() {
+    List<QueryHandler> handlers = new ArrayList<>();
+    handlers.add(new PrometheusQueryHandler());
+    return handlers;
+  }
+  
+  @Provides
+  @Singleton
+  public QueryHandlerRegistry queryHandlerRegistry(List<QueryHandler> queryHandlers) {
+    return new QueryHandlerRegistry(queryHandlers);
+  }
+
+  @Provides
+  @Singleton
+  public DirectQueryExecutorServiceImpl directQueryExecutorServiceImpl(
+      DataSourceClientFactory clientFactory,
+      QueryHandlerRegistry queryHandlerRegistry) {
+    return new DirectQueryExecutorServiceImpl(clientFactory, queryHandlerRegistry);
+  }
+
+
+}
