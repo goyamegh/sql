@@ -25,8 +25,7 @@ public class DirectQueryModule extends AbstractModule {
   @Override
   protected void configure() {
     // Add an explicit binding for DirectQueryExecutorService
-    bind(DirectQueryExecutorService.class).to(DirectQueryExecutorServiceImpl.class).in(Singleton.class);
-  }
+   }
 
   @Provides
   @Singleton
@@ -50,11 +49,9 @@ public class DirectQueryModule extends AbstractModule {
 
   @Provides
   @Singleton
-  public DirectQueryExecutorServiceImpl directQueryExecutorServiceImpl(
+  public DirectQueryExecutorService directQueryExecutorServiceImpl(
       DataSourceClientFactory clientFactory,
       QueryHandlerRegistry queryHandlerRegistry) {
-    return new DirectQueryExecutorServiceImpl(clientFactory, queryHandlerRegistry);
+    return (DirectQueryExecutorService) new DirectQueryExecutorServiceImpl(clientFactory, queryHandlerRegistry);
   }
-
-
 }

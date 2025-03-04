@@ -35,7 +35,7 @@ public class TransportExecuteDirectQueryRequestAction
       ActionFilters actionFilters,
       DirectQueryExecutorServiceImpl directQueryExecutorService) {
     super(NAME, transportService, actionFilters, ExecuteDirectQueryActionRequest::new);
-    this.directQueryExecutorService = directQueryExecutorService;
+    this.directQueryExecutorService = (DirectQueryExecutorService) directQueryExecutorService;
   }
 
   @Override

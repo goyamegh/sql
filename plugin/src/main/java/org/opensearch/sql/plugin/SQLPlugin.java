@@ -257,11 +257,12 @@ public class SQLPlugin extends Plugin
             dataSourceService,
             injector.getInstance(FlintIndexMetadataServiceImpl.class),
             injector.getInstance(FlintIndexOpFactory.class));
+
+    // Passing the service to Transport actions
     AsyncQueryExecutorService asyncQueryExecutorService =
         injector.getInstance(AsyncQueryExecutorService.class);
-    // Passing the service to Transport actions
-    DirectQueryExecutorService directQueryExecutorService =
-        injector.getInstance(DirectQueryExecutorService.class);
+    DirectQueryExecutorService directQueryExecutorService = injector.getInstance(DirectQueryExecutorService.class);
+
     ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
