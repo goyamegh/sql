@@ -50,9 +50,13 @@ public class PrometheusClientImpl implements PrometheusClient {
             start,
             end,
             step);
-    logger.debug("queryUrl: " + queryUrl);
+    logger.info("Making Prometheus query_range request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
+    
+    logger.info("Executing Prometheus request with headers: {}", request.headers());
     Response response = this.okHttpClient.newCall(request).execute();
+    
+    logger.info("Received Prometheus response for query_range: code={}", response.code());
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONObject("data");
   }
@@ -112,23 +116,38 @@ public class PrometheusClientImpl implements PrometheusClient {
   }
 
   private JSONObject readResponse(Response response) throws IOException {
+    // Log the response information
+    logger.debug("Prometheus response code: {}", response.code());
+    
     if (response.isSuccessful()) {
-      JSONObject jsonObject;
-      try {
-        jsonObject = new JSONObject(Objects.requireNonNull(response.body()).string());
-      } catch (JSONException jsonException) {
-        throw new PrometheusClientException(
-            "Prometheus returned unexpected body, "
-                + "please verify your prometheus server setup.");
-      }
-      if ("success".equals(jsonObject.getString("status"))) {
-        return jsonObject;
-      } else {
-        throw new PrometheusClientException(jsonObject.getString("error"));
-      }
+        JSONObject jsonObject;
+        try {
+            String bodyString = Objects.requireNonNull(response.body()).string();
+            logger.debug("Prometheus response body: {}", bodyString);
+            jsonObject = new JSONObject(bodyString);
+        } catch (JSONException jsonException) {
+            logger.error("Failed to parse Prometheus response as JSON", jsonException);
+            throw new PrometheusClientException(
+                "Prometheus returned unexpected body, "
+                    + "please verify your prometheus server setup.");
+        }
+        
+        String status = jsonObject.getString("status");
+        logger.debug("Prometheus response status: {}", status);
+        
+        if ("success".equals(status)) {
+            return jsonObject;
+        } else {
+            String errorMessage = jsonObject.getString("error");
+            logger.error("Prometheus returned error status: {}", errorMessage);
+            throw new PrometheusClientException(errorMessage);
+        }
     } else {
-      throw new PrometheusClientException(
-          String.format("Request to Prometheus is Unsuccessful with code : %s", response.code()));
+        String errorBody = response.body() != null ? response.body().string() : "No response body";
+        logger.error("Prometheus request failed with code: {}, error body: {}", response.code(), errorBody);
+        throw new PrometheusClientException(
+            String.format("Request to Prometheus is Unsuccessful with code: %s. Error details: %s", 
+                         response.code(), errorBody));
     }
   }
 }
