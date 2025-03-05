@@ -56,15 +56,15 @@ public class PrometheusQueryHandler implements QueryHandler {
           case "LABELS":
             List<String> labels = prometheusClient.getLabels(request.getQueryParams());
             return new JSONArray(labels).toString();
+          case "LABEL":
+            List<String> labelValues = prometheusClient.getLabel(request.getQuery(), request.getQueryParams());
+            return new JSONArray(labelValues).toString();
+          case "METADATA":
+            Map<String, List<MetricMetadata>> metadata = prometheusClient.getAllMetrics(request.getQueryParams());
+            return new JSONObject(metadata).toString();
           case "SERIES":
-            Map<String, List<MetricMetadata>> allMetrics = prometheusClient.getAllMetrics();
-            return new JSONObject(allMetrics.keySet()).toString();
-          case "METRIC_METADATA":
-            Map<String, List<MetricMetadata>> metricsMeta = prometheusClient.getAllMetrics();
-            List<MetricMetadata> metaDataForMetric = metricsMeta.get(request.getQuery());
-            return metaDataForMetric != null
-                ? new JSONArray(metaDataForMetric).toString()
-                : "{\"error\": \"No metadata found for this metric.\"}";
+            List<Map<String, String>> series = prometheusClient.getSeries(request.getQueryParams());
+            return new JSONArray(series).toString();
           default:
             return "{\"error\": \"Unsupported query type: " + queryType + "\"}";
         }

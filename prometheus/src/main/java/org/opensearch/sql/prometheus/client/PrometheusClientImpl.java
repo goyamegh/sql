@@ -42,6 +42,13 @@ public class PrometheusClientImpl implements PrometheusClient {
     this.uri = uri;
   }
 
+  private String paramsToQueryString(Map<String, String> queryParams) {
+    return queryParams.entrySet().stream()
+        .map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "=" +
+            URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
+        .collect(Collectors.joining("&"));
+  }
+
   @Override
   public JSONObject queryRange(String query, Long start, Long end, String step) throws IOException {
     String queryUrl =
@@ -65,25 +72,12 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public List<String> getLabels(String metricName) throws IOException {
-    String queryUrl =
-        String.format(
-            "%s/api/v1/labels?%s=%s",
-            uri.toString().replaceAll("/$", ""),
-            URLEncoder.encode("match[]", StandardCharsets.UTF_8),
-            URLEncoder.encode(metricName, StandardCharsets.UTF_8));
-    logger.debug("queryUrl: " + queryUrl);
-    Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.okHttpClient.newCall(request).execute();
-    JSONObject jsonObject = readResponse(response);
-    return toListOfLabels(jsonObject.getJSONArray("data"));
+    return getLabels(Map.of("match[]", metricName));
   }
 
   @Override
   public List<String> getLabels(Map<String, String> queryParams) throws IOException {
-    String queryString = queryParams.entrySet().stream()
-        .map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "=" +
-            URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
-        .collect(Collectors.joining("&"));
+    String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
         String.format(
             "%s/api/v1/labels?%s",
@@ -97,14 +91,48 @@ public class PrometheusClientImpl implements PrometheusClient {
   }
 
   @Override
-  public Map<String, List<MetricMetadata>> getAllMetrics() throws IOException {
-    String queryUrl = String.format("%s/api/v1/metadata", uri.toString().replaceAll("/$", ""));
+  public List<String> getLabel(String labelName, Map<String, String> queryParams) throws IOException {
+    String queryString = this.paramsToQueryString(queryParams);
+    String queryUrl =
+        String.format(
+            "%s/api/v1/label/%s/values?%s",
+            uri.toString().replaceAll("/$", ""),
+            labelName,
+            queryString);
+    logger.debug("queryUrl: " + queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response = this.okHttpClient.newCall(request).execute();
+    JSONObject jsonObject = readResponse(response);
+    return toListOfLabels(jsonObject.getJSONArray("data"));
+  }
+
+  @Override
+  public Map<String, List<MetricMetadata>> getAllMetrics(Map<String, String> queryParams) throws IOException {
+    String queryString = this.paramsToQueryString(queryParams);
+    String queryUrl = String.format("%s/api/v1/metadata?%s", uri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     TypeReference<HashMap<String, List<MetricMetadata>>> typeRef = new TypeReference<>() {};
     return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
+  }
+
+  @Override
+  public Map<String, List<MetricMetadata>> getAllMetrics() throws IOException {
+    return getAllMetrics(Map.of());
+  }
+
+  @Override
+  public List<Map<String, String>> getSeries(Map<String, String> queryParams) throws IOException {
+    String queryString = this.paramsToQueryString(queryParams);
+    String queryUrl = String.format("%s/api/v1/series?%s", uri.toString().replaceAll("/$", ""), queryString);
+    logger.debug("queryUrl: " + queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response = this.okHttpClient.newCall(request).execute();
+    JSONObject jsonObject = readResponse(response);
+    JSONArray dataArray = jsonObject.getJSONArray("data");
+    return toListOfSeries(dataArray);
   }
 
   @Override
@@ -131,6 +159,19 @@ public class PrometheusClientImpl implements PrometheusClient {
       if (!"__name__".equals(array.optString(i))) {
         result.add(array.optString(i));
       }
+    }
+    return result;
+  }
+
+  private List<Map<String, String>> toListOfSeries(JSONArray array) {
+    List<Map<String, String>> result = new ArrayList<>();
+    for (int i = 0; i < array.length(); i++) {
+      JSONObject obj = array.getJSONObject(i);
+      Map<String, String> map = new HashMap<>();
+      for (String key : obj.keySet()) {
+        map.put(key, obj.getString(key));
+      }
+      result.add(map);
     }
     return result;
   }

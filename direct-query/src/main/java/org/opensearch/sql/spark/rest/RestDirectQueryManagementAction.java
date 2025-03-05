@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -46,6 +47,7 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
   public static final String DIRECT_QUERY_ACTIONS = "direct_query_actions";
   public static final String BASE_DIRECT_QUERY_ACTION_URL =
       "/_plugins/_direct_query/_sync/{dataSources}";
+  public static final String BASE_DIRECT_QUERY_RESOURCES_URL = "/_plugins/_direct_query/{dataSource}/resources";
 
   private static final Logger LOG = LogManager.getLogger(RestDirectQueryManagementAction.class);
   private final OpenSearchSettings settings;
@@ -58,7 +60,8 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
   @Override
   public List<Route> routes() {
     return ImmutableList.of(
-        new Route(GET, "/_plugins/_direct_query/resources/{dataSources}/api/v1/{resourceType}"),
+        new Route(GET, String.format(Locale.ROOT, "%s/api/v1/{resourceType}", BASE_DIRECT_QUERY_RESOURCES_URL)),
+        new Route(GET, String.format(Locale.ROOT, "%s/api/v1/{resourceType}/{resourceName}/values", BASE_DIRECT_QUERY_RESOURCES_URL)),
         new Route(POST, BASE_DIRECT_QUERY_ACTION_URL)
     );
   }
@@ -89,8 +92,11 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
   private RestChannelConsumer executeGetResourcesRequest(
       RestRequest restRequest, NodeClient nodeClient) {
     ExecuteDirectQueryRequest directQueryRequest = new ExecuteDirectQueryRequest();
-    directQueryRequest.setDatasource(restRequest.param("dataSources"));
+    directQueryRequest.setDatasource(restRequest.param("dataSource"));
     directQueryRequest.setQueryType(restRequest.param("resourceType"));
+    if (restRequest.param("resourceName") != null) {
+      directQueryRequest.setQuery(restRequest.param("resourceName"));
+    }
     directQueryRequest.setQueryParams(restRequest.params().keySet().stream()
         .filter(p -> !restRequest.consumedParams().contains(p))
         .collect(Collectors.toMap(p -> p, restRequest::param)));
