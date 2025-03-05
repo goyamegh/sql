@@ -21,8 +21,10 @@ import org.opensearch.sql.common.interceptors.BasicAuthenticationInterceptor;
 import org.opensearch.sql.common.interceptors.URIValidatorInterceptor;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
 
@@ -53,11 +55,11 @@ public class DataSourceClientFactory {
   private final org.opensearch.sql.opensearch.setting.OpenSearchSettings settings;
 
   private final DataSourceService dataSourceService;
-  // REmove this and call Storage factory to fetch cleint at run time. 
+  // REmove this and call Storage factory to fetch cleint at run time.
   // private final OkHttpClient httpClient;
 
   @Inject
-  public DataSourceClientFactory(DataSourceService dataSourceService, 
+  public DataSourceClientFactory(DataSourceService dataSourceService,
                                 org.opensearch.sql.common.setting.Settings settings) {
     this.settings = (org.opensearch.sql.opensearch.setting.OpenSearchSettings) settings;
     this.dataSourceService = dataSourceService;

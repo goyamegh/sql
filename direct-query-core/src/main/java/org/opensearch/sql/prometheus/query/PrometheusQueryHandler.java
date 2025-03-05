@@ -53,8 +53,8 @@ public class PrometheusQueryHandler implements QueryHandler {
             } catch (NumberFormatException e) {
               return "{\"error\": \"Invalid time format: " + e.getMessage() + "\"}";
             }
-          case "LABEL":
-            List<String> labels = prometheusClient.getLabels(request.getQuery());
+          case "LABELS":
+            List<String> labels = prometheusClient.getLabels(request.getQueryParams());
             return new JSONArray(labels).toString();
           case "SERIES":
             Map<String, List<MetricMetadata>> allMetrics = prometheusClient.getAllMetrics();

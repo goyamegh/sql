@@ -7,14 +7,16 @@ package org.opensearch.sql.spark.rest;
 
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.rest.RestRequest.Method.GET;
 
 import com.google.common.collect.ImmutableList;
+
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,8 +39,6 @@ import org.opensearch.sql.spark.transport.format.DirectQueryRequestConverter;
 import org.opensearch.sql.spark.transport.model.ExecuteDirectQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.transport.client.node.NodeClient;
-import org.opensearch.common.xcontent.XContentHelper;
-import org.opensearch.common.xcontent.XContentType;
 
 @RequiredArgsConstructor
 public class RestDirectQueryManagementAction extends BaseRestHandler {
@@ -58,6 +58,7 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
   @Override
   public List<Route> routes() {
     return ImmutableList.of(
+        new Route(GET, "/_plugins/_direct_query/resources/{dataSources}/api/v1/{resourceType}"),
         new Route(POST, BASE_DIRECT_QUERY_ACTION_URL)
     );
   }
@@ -68,12 +69,14 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
     if (!dataSourcesEnabled()) {
       return dataSourcesDisabledError(restRequest);
     }
-    
-    // Extract the datasource name from the URL path
-    String dataSourceFromPath = restRequest.param("dataSources");
+
 
     switch (restRequest.method()) {
+      case GET:
+        return executeGetResourcesRequest(restRequest, nodeClient);
       case POST:
+        // Extract the datasource name from the URL path
+        String dataSourceFromPath = restRequest.param("dataSources");
         return executeDirectQueryRequest(restRequest, nodeClient, dataSourceFromPath);
       default:
         return restChannel ->
@@ -83,13 +86,55 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
     }
   }
 
+  private RestChannelConsumer executeGetResourcesRequest(
+      RestRequest restRequest, NodeClient nodeClient) {
+    ExecuteDirectQueryRequest directQueryRequest = new ExecuteDirectQueryRequest();
+    directQueryRequest.setDatasource(restRequest.param("dataSources"));
+    directQueryRequest.setQueryType(restRequest.param("resourceType"));
+    directQueryRequest.setQueryParams(restRequest.params().keySet().stream()
+        .filter(p -> !restRequest.consumedParams().contains(p))
+        .collect(Collectors.toMap(p -> p, restRequest::param)));
+
+    return restChannel -> {
+      try {
+        // Generate a queryId for tracking and potential cancellation
+        String queryId = UUID.randomUUID().toString();
+        directQueryRequest.setQueryId(queryId);
+
+        Scheduler.schedule(
+            nodeClient,
+            () ->
+                nodeClient.execute(
+                    TransportExecuteDirectQueryRequestAction.ACTION_TYPE,
+                    new ExecuteDirectQueryActionRequest(directQueryRequest),
+                    new ActionListener<>() {
+                      @Override
+                      public void onResponse(ExecuteDirectQueryActionResponse response) {
+                        restChannel.sendResponse(
+                            new BytesRestResponse(
+                                RestStatus.OK,
+                                "application/json; charset=UTF-8",
+                                response.getResult()));
+                      }
+
+                      @Override
+                      public void onFailure(Exception e) {
+                        handleException(e, restChannel, restRequest.method());
+                      }
+                    }));
+      } catch (Exception e) {
+        handleException(e, restChannel, restRequest.method());
+      }
+    };
+  }
+
   private RestChannelConsumer executeDirectQueryRequest(
       RestRequest restRequest, NodeClient nodeClient, String dataSourceFromPath) {
     return restChannel -> {
       try {
         ExecuteDirectQueryRequest directQueryRequest =
             DirectQueryRequestConverter.fromXContentParser(restRequest.contentParser());
-        
+
         // If the datasource is not specified in the payload, use the path parameter
         if (directQueryRequest.getDatasource() == null) {
           directQueryRequest.setDatasource(dataSourceFromPath);
@@ -158,7 +203,7 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
 
   private RestChannelConsumer dataSourcesDisabledError(RestRequest request) {
     RestRequestUtil.consumeAllRequestParameters(request);
-    
+
     return channel -> {
       reportError(
           channel,

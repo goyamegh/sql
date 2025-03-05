@@ -8,6 +8,8 @@ package org.opensearch.sql.directquery.rest.model;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 @Data
 @NoArgsConstructor
 public class ExecuteDirectQueryRequest {
@@ -19,4 +21,5 @@ public class ExecuteDirectQueryRequest {
   private String step;
   private String sessionId;
   private String queryId;
+  private Map<String, String> queryParams;
 }

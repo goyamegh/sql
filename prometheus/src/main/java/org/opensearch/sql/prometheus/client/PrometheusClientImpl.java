@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -69,6 +71,24 @@ public class PrometheusClientImpl implements PrometheusClient {
             uri.toString().replaceAll("/$", ""),
             URLEncoder.encode("match[]", StandardCharsets.UTF_8),
             URLEncoder.encode(metricName, StandardCharsets.UTF_8));
+    logger.debug("queryUrl: " + queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response = this.okHttpClient.newCall(request).execute();
+    JSONObject jsonObject = readResponse(response);
+    return toListOfLabels(jsonObject.getJSONArray("data"));
+  }
+
+  @Override
+  public List<String> getLabels(Map<String, String> queryParams) throws IOException {
+    String queryString = queryParams.entrySet().stream()
+        .map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "=" +
+            URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
+        .collect(Collectors.joining("&"));
+    String queryUrl =
+        String.format(
+            "%s/api/v1/labels?%s",
+            uri.toString().replaceAll("/$", ""),
+            queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.okHttpClient.newCall(request).execute();
