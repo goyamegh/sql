@@ -16,6 +16,8 @@ public interface PrometheusClient {
 
   JSONObject queryRange(String query, Long start, Long end, String step) throws IOException;
 
+  JSONObject queryRange(String query, Long start, Long end, String step, Integer limit, Integer timeout) throws IOException;
+
   List<String> getLabels(String metricName) throws IOException;
 
   List<String> getLabels(Map<String, String> queryParams) throws IOException;
@@ -29,4 +31,14 @@ public interface PrometheusClient {
   List<Map<String, String>> getSeries(Map<String, String> queryParams) throws IOException;
 
   JSONArray queryExemplars(String query, Long start, Long end) throws IOException;
+
+  /**
+   * Execute an instant query at a single point in time.
+   *
+   * @param query The Prometheus expression query string
+   * @param time Optional evaluation timestamp (Unix timestamp in seconds)
+   * @return JSONObject containing the query result data
+   * @throws IOException If there is an issue with the request
+   */
+  JSONObject query(String query, Long time, Integer limit, Integer timeout) throws IOException;
 }

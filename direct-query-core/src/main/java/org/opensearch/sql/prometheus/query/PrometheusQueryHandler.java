@@ -45,21 +45,34 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
   public String executeQuery(PrometheusClient client, ExecuteDirectQueryRequest request) throws IOException {
     return SecurityAccess.doPrivileged(() -> {
       try {
-        PrometheusOptions options = ((ExecuteDirectQueryRequest) request).getPrometheusOptions();
+        ExecuteDirectQueryRequest queryRequest = (ExecuteDirectQueryRequest) request;
+        PrometheusOptions options = queryRequest.getPrometheusOptions();
         String startTimeStr = options.getStart();
         String endTimeStr = options.getEnd();
+        Integer limit = queryRequest.getMaxResults();
+        Integer timeout = queryRequest.getTimeout();
 
-        if (startTimeStr == null || endTimeStr == null) {
+        if (options.getQueryType() == PrometheusQueryType.RANGE && (startTimeStr == null || endTimeStr == null)) {
           return "{\"error\": \"Start and end times are required for Prometheus queries\"}";
+        } else if (options.getQueryType() == PrometheusQueryType.INSTANT && options.getTime() == null) {
+          return "{\"error\": \"Time is required for instant Prometheus queries\"}";
         }
 
         if (options.getQueryType() == PrometheusQueryType.RANGE) {
-
           JSONObject metricData = client.queryRange(
-              ((ExecuteDirectQueryRequest) request).getQuery(),
+              queryRequest.getQuery(),
               Long.parseLong(startTimeStr),
               Long.parseLong(endTimeStr),
-              options.getStep());
+              options.getStep(),
+              limit,
+              timeout);
+          return metricData.toString();
+        } else if (options.getQueryType() == PrometheusQueryType.INSTANT) {
+          JSONObject metricData = client.query(
+              queryRequest.getQuery(),
+              Long.parseLong(options.getTime()),
+              limit,
+              timeout);
           return metricData.toString();
         }
         return "{\"error\": \"Invalid query type: " + options.getQueryType().toString() + "\"}";

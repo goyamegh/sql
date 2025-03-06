@@ -51,21 +51,80 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public JSONObject queryRange(String query, Long start, Long end, String step) throws IOException {
-    String queryUrl =
-        String.format(
-            "%s/api/v1/query_range?query=%s&start=%s&end=%s&step=%s",
-            uri.toString().replaceAll("/$", ""),
-            URLEncoder.encode(query, StandardCharsets.UTF_8),
-            start,
-            end,
-            step);
+    return queryRange(query, start, end, step, null, null);
+  }
+
+  @Override
+  public JSONObject queryRange(String query, Long start, Long end, String step, 
+                            Integer limit, Integer timeout) throws IOException {
+    Map<String, String> params = new HashMap<>();
+    params.put("query", query);
+    params.put("start", start.toString());
+    params.put("end", end.toString());
+    params.put("step", step);
+    
+    // Add optional parameters if provided
+    if (limit != null) {
+        params.put("limit", limit.toString());
+    }
+    if (timeout != null) {
+        params.put("timeout", timeout.toString());
+    }
+    
+    String queryString = params.entrySet().stream()
+        .map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "=" +
+            URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
+        .collect(Collectors.joining("&"));
+    
+    String queryUrl = String.format(
+        "%s/api/v1/query_range?%s",
+        uri.toString().replaceAll("/$", ""),
+        queryString);
+    
     logger.info("Making Prometheus query_range request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     
-    logger.info("Executing Prometheus request with headers: {}", request.headers());
+    logger.info("Executing Prometheus request with headers: {}", request.headers().toString());
     Response response = this.okHttpClient.newCall(request).execute();
     
-    logger.info("Received Prometheus response for query_range: code={}", response.code());
+    logger.info("Received Prometheus response for query_range: code={}", response);
+    JSONObject jsonObject = readResponse(response);
+    return jsonObject.getJSONObject("data");
+  }
+
+  @Override
+  public JSONObject query(String query, Long time, Integer limit, Integer timeout) throws IOException {
+    Map<String, String> params = new HashMap<>();
+    params.put("query", query);
+    
+    // Add optional parameters
+    if (time != null) {
+        params.put("time", time.toString());
+    }
+    if (limit != null) {
+        params.put("limit", limit.toString());
+    }
+    if (timeout != null) {
+        params.put("timeout", timeout.toString());
+    }
+    
+    String queryString = params.entrySet().stream()
+        .map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "=" +
+            URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
+        .collect(Collectors.joining("&"));
+    
+    String queryUrl = String.format(
+        "%s/api/v1/query?%s",
+        uri.toString().replaceAll("/$", ""),
+        queryString);
+    
+    logger.info("Making Prometheus instant query request: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    
+    logger.info("Executing Prometheus request with headers: {}", request.headers().toString());
+    Response response = this.okHttpClient.newCall(request).execute();
+    
+    logger.info("Received Prometheus response for instant query: code={}", response);
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONObject("data");
   }
@@ -180,6 +239,10 @@ public class PrometheusClientImpl implements PrometheusClient {
     // Log the response information
     logger.debug("Prometheus response code: {}", response.code());
     
+    String requestId = response.header("X-Request-ID");
+    if (requestId != null) {
+        logger.info("Prometheus request ID: {}", requestId);
+    }
     if (response.isSuccessful()) {
         JSONObject jsonObject;
         try {

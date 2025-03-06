@@ -8,15 +8,10 @@ package org.opensearch.sql.directquery.validator;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
+import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 
 public class DirectQueryRequestValidator {
 
-  /**
-   * Validates a DirectQuery request.
-   *
-   * @param request The request to validate
-   * @throws IllegalArgumentException if the request is invalid
-   */
   public static void validateRequest(ExecuteDirectQueryRequest request) {
     if (request == null) {
       throw new IllegalArgumentException("Request cannot be null");
@@ -36,11 +31,25 @@ public class DirectQueryRequestValidator {
     
     if (request.getLanguage() == LangType.PROMQL) {
       PrometheusOptions prometheusOptions = request.getPrometheusOptions();
+      if (prometheusOptions == null) {
+        throw new IllegalArgumentException("Prometheus options are required for PROMQL queries");
+      }
       
-      String start = prometheusOptions.getStart();
-      String end = prometheusOptions.getEnd();
-      
-      if (start != null && end != null) {
+      // Validate based on query type
+      if (prometheusOptions.getQueryType() == PrometheusQueryType.RANGE) {
+        String start = prometheusOptions.getStart();
+        String end = prometheusOptions.getEnd();
+        
+        if (start == null || end == null) {
+          throw new IllegalArgumentException("Start and end times are required for range queries");
+        }
+        
+        // Validate step parameter
+        if (prometheusOptions.getStep() == null || prometheusOptions.getStep().isEmpty()) {
+          throw new IllegalArgumentException("Step parameter is required for range queries");
+        }
+        
+        // Validate timestamps
         try {
           long startTimestamp = Long.parseLong(start);
           long endTimestamp = Long.parseLong(end);
@@ -48,8 +57,22 @@ public class DirectQueryRequestValidator {
             throw new IllegalArgumentException("End time must be after start time");
           }
         } catch (NumberFormatException e) {
-          // If timestamps are not numeric, we skip this validation
+          throw new IllegalArgumentException("Invalid time format: start and end must be numeric timestamps");
         }
+      } else if (prometheusOptions.getQueryType() == PrometheusQueryType.INSTANT) {
+        // For instant queries, validate time parameter
+        if (prometheusOptions.getTime() == null) {
+          throw new IllegalArgumentException("Time parameter is required for instant queries");
+        }
+        
+        // Validate time format
+        try {
+          Long.parseLong(prometheusOptions.getTime().toString());
+        } catch (NumberFormatException e) {
+          throw new IllegalArgumentException("Invalid time format: time must be a numeric timestamp");
+        }
+      } else if (prometheusOptions.getQueryType() == null) {
+        throw new IllegalArgumentException("Query type is required for Prometheus queries");
       }
     }
   }
