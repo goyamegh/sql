@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.transport.config;
+package org.opensearch.sql.directquery.transport.config;
 
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Provides;
@@ -13,8 +13,8 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.query.QueryHandler;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
-import org.opensearch.sql.spark.directquery.DirectQueryExecutorService;
-import org.opensearch.sql.spark.directquery.DirectQueryExecutorServiceImpl;
+import org.opensearch.sql.directquery.DirectQueryExecutorService;
+import org.opensearch.sql.directquery.DirectQueryExecutorServiceImpl;
 import org.opensearch.sql.prometheus.query.PrometheusQueryHandler;
 
 import java.util.ArrayList;
@@ -24,8 +24,7 @@ public class DirectQueryModule extends AbstractModule {
 
   @Override
   protected void configure() {
-    // Add an explicit binding for DirectQueryExecutorService
-   }
+  }
 
   @Provides
   @Singleton

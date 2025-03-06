@@ -3,55 +3,39 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.directquery;
+package org.opensearch.sql.directquery;
 
 import java.io.IOException;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
 
-import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryResponse;
-import org.opensearch.transport.TransportService;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 
 public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorService {
 
-  private DataSourceClientFactory clientFactory;
-  private QueryHandlerRegistry queryHandlerRegistry;
+  private final DataSourceClientFactory dataSourceClientFactory;
+  private final QueryHandlerRegistry queryHandlerRegistry;
 
   @Inject
-  public DirectQueryExecutorServiceImpl(DataSourceClientFactory clientFactory,
+  public DirectQueryExecutorServiceImpl(DataSourceClientFactory dataSourceClientFactory,
                                         QueryHandlerRegistry queryHandlerRegistry) {
-    this.clientFactory = clientFactory;
+    this.dataSourceClientFactory = dataSourceClientFactory;
     this.queryHandlerRegistry = queryHandlerRegistry;
   }
 
   @Override
   public ExecuteDirectQueryResponse executeDirectQuery(ExecuteDirectQueryRequest request) {
-    String result;
-
     // TODO: Replace with the data source query id.
-    String queryId = UUID.randomUUID().toString(); // Generate a unique query ID
+    String queryId = UUID.randomUUID().toString();
     String sessionId = request.getSessionId(); // Session ID is passed as is
+
+    String result;
     try {
-      String dataSourceName = request.getDatasource();
-      if (dataSourceName == null) {
-        return new ExecuteDirectQueryResponse(queryId, "{\"error\": \"Data source name cannot be null\"}", sessionId);
-      }
-      
-      String queryType = request.getQueryType();
-      if (queryType == null) {
-        return new ExecuteDirectQueryResponse(queryId, "{\"error\": \"Query type cannot be null\"}", sessionId);
-      }
-      
-      // Get the appropriate client for the data source
-      Object client = clientFactory.createClient(dataSourceName);
-      
-      // Find a handler for this client type
-      result = queryHandlerRegistry.findHandler(client)
+      Object client = dataSourceClientFactory.createClient(request.getDataSources());
+      result = queryHandlerRegistry.getQueryHandler(client)
           .map(handler -> {
             try {
               return handler.executeQuery(client, request);
@@ -60,7 +44,7 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
             }
           })
           .orElse("{\"error\": \"Unsupported data source type\"}");
-      
+
     } catch (Exception e) {
       result = "{\"error\": \"" + e.getMessage() + "\"}";
     }

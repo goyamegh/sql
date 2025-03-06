@@ -3,20 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.transport;
+package org.opensearch.sql.directquery.transport;
 
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryResponse;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
-import org.opensearch.sql.spark.transport.model.ExecuteDirectQueryActionRequest;
-import org.opensearch.sql.spark.transport.model.ExecuteDirectQueryActionResponse;
+import org.opensearch.sql.directquery.DirectQueryExecutorService;
+import org.opensearch.sql.directquery.DirectQueryExecutorServiceImpl;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
+import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionRequest;
+import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
-import org.opensearch.sql.spark.directquery.DirectQueryExecutorService;
-import org.opensearch.sql.spark.directquery.DirectQueryExecutorServiceImpl;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -44,13 +44,9 @@ public class TransportExecuteDirectQueryRequestAction
       ExecuteDirectQueryActionRequest request,
       ActionListener<ExecuteDirectQueryActionResponse> listener) {
     try {
-      // Get the direct query request from the action request
       ExecuteDirectQueryRequest directQueryRequest = request.getDirectQueryRequest();
       
-      // Execute the query directly using the executor service
       ExecuteDirectQueryResponse response = directQueryExecutorService.executeDirectQuery(directQueryRequest);
-      
-      // Format the response into a JSON string
       String responseContent =
           new JsonResponseFormatter<ExecuteDirectQueryResponse>(JsonResponseFormatter.Style.PRETTY) {
             @Override
@@ -58,10 +54,8 @@ public class TransportExecuteDirectQueryRequestAction
               return response;
             }
           }.format(response);
-      
-      // Return the formatted JSON string in the response
       listener.onResponse(new ExecuteDirectQueryActionResponse(
-          directQueryRequest.getQueryId(),
+          response.getQueryId(),
           responseContent,
           response.getSessionId()));
     } catch (Exception e) {

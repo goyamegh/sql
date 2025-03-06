@@ -51,10 +51,7 @@ public class DataSourceClientFactory {
   private static final Logger LOG = LogManager.getLogger();
 
   private final org.opensearch.sql.opensearch.setting.OpenSearchSettings settings;
-
   private final DataSourceService dataSourceService;
-  // REmove this and call Storage factory to fetch cleint at run time. 
-  // private final OkHttpClient httpClient;
 
   @Inject
   public DataSourceClientFactory(DataSourceService dataSourceService, 
@@ -99,10 +96,11 @@ public class DataSourceClientFactory {
     }
   }
 
-  private PrometheusClient createPrometheusClient(DataSourceMetadata metadata) {
+    // TODO: Move this to a common place for this file and PrometheusStorageFactory
+    private PrometheusClient createPrometheusClient(DataSourceMetadata metadata) {
     try {
       // replace this with validate properties in PrometheusStorageFactory
-      String host = metadata.getProperties().get("prometheus.uri");
+      String host = metadata.getProperties().get(URI);
       if (Objects.isNull(host)) {
         throw new DataSourceClientException("Host is required for Prometheus data source");
       }

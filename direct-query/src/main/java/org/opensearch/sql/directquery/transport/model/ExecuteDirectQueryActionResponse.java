@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.transport.model;
+package org.opensearch.sql.directquery.transport.model;
 
 import java.io.IOException;
 import lombok.Getter;

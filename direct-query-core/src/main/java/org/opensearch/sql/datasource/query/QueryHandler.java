@@ -7,7 +7,7 @@ package org.opensearch.sql.datasource.query;
 
 import java.io.IOException;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 
 /**
  * Interface for handling queries for specific data source types.

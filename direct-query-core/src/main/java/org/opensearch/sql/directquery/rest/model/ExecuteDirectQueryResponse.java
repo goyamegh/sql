@@ -1,4 +1,4 @@
-package org.opensearch.sql.spark.rest.model;
+package org.opensearch.sql.directquery.rest.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

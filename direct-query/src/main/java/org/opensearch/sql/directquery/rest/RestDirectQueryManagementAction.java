@@ -3,18 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.rest;
+package org.opensearch.sql.directquery.rest;
 
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.Objects;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,24 +27,21 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.transport.TransportExecuteDirectQueryRequestAction;
+import org.opensearch.sql.directquery.transport.format.DirectQueryRequestConverter;
+import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionRequest;
+import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
+import org.opensearch.sql.directquery.validator.DirectQueryRequestValidator;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.util.RestRequestUtil;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryResponse;
-import org.opensearch.sql.spark.transport.TransportExecuteDirectQueryRequestAction;
-import org.opensearch.sql.spark.transport.format.DirectQueryRequestConverter;
-import org.opensearch.sql.spark.transport.model.ExecuteDirectQueryActionRequest;
-import org.opensearch.sql.spark.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.transport.client.node.NodeClient;
-import org.opensearch.common.xcontent.XContentHelper;
-import org.opensearch.common.xcontent.XContentType;
 
 @RequiredArgsConstructor
 public class RestDirectQueryManagementAction extends BaseRestHandler {
 
   public static final String DIRECT_QUERY_ACTIONS = "direct_query_actions";
-  public static final String BASE_DIRECT_QUERY_ACTION_URL =
-      "/_plugins/_direct_query/_sync/{dataSources}";
+  public static final String BASE_DIRECT_QUERY_ACTION_URL = "/_plugins/_directquery/_sync/{dataSources}";
 
   private static final Logger LOG = LogManager.getLogger(RestDirectQueryManagementAction.class);
   private final OpenSearchSettings settings;
@@ -64,41 +59,44 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
   }
 
   @Override
-  protected RestChannelConsumer prepareRequest(RestRequest restRequest, NodeClient nodeClient)
-      throws IOException {
+  protected RestChannelConsumer prepareRequest(RestRequest restRequest, NodeClient nodeClient) {
+    // This line consumes the dataSources parameter from the path
+    String dataSources = restRequest.param("dataSources");
+
+    // Also consume all other request parameters to prevent similar errors
+    RestRequestUtil.consumeAllRequestParameters(restRequest);
+    
     if (!dataSourcesEnabled()) {
       return dataSourcesDisabledError(restRequest);
     }
-    
-    // Extract the datasource name from the URL path
-    String dataSourceFromPath = restRequest.param("dataSources");
 
-    switch (restRequest.method()) {
-      case POST:
-        return executeDirectQueryRequest(restRequest, nodeClient, dataSourceFromPath);
-      default:
-        return restChannel ->
-            restChannel.sendResponse(
-                new BytesRestResponse(
-                    RestStatus.METHOD_NOT_ALLOWED, String.valueOf(restRequest.method())));
-    }
+      if (Objects.requireNonNull(restRequest.method()) == POST) {
+          return executeDirectQueryRequest(restRequest, nodeClient, dataSources);
+      }
+      return restChannel ->
+              restChannel.sendResponse(
+                      new BytesRestResponse(
+                              RestStatus.METHOD_NOT_ALLOWED, String.valueOf(restRequest.method())));
   }
 
-  private RestChannelConsumer executeDirectQueryRequest(
-      RestRequest restRequest, NodeClient nodeClient, String dataSourceFromPath) {
+  private RestChannelConsumer executeDirectQueryRequest(RestRequest restRequest, NodeClient nodeClient, String dataSources) {
     return restChannel -> {
       try {
         ExecuteDirectQueryRequest directQueryRequest =
             DirectQueryRequestConverter.fromXContentParser(restRequest.contentParser());
-        
+
         // If the datasource is not specified in the payload, use the path parameter
-        if (directQueryRequest.getDatasource() == null) {
-          directQueryRequest.setDatasource(dataSourceFromPath);
+        if (directQueryRequest.getDataSources() == null) {
+          directQueryRequest.setDataSources(dataSources);
         }
 
-        // Generate a queryId for tracking and potential cancellation
-        String queryId = UUID.randomUUID().toString();
-        directQueryRequest.setQueryId(queryId);
+        // Generate a session ID if one is not provided in the request
+        if (directQueryRequest.getSessionId() == null) {
+          directQueryRequest.setSessionId(java.util.UUID.randomUUID().toString());
+        }
+
+        // Validate request using the dedicated validator
+        DirectQueryRequestValidator.validateRequest(directQueryRequest);
 
         Scheduler.schedule(
             nodeClient,
@@ -159,7 +157,7 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
 
   private RestChannelConsumer dataSourcesDisabledError(RestRequest request) {
     RestRequestUtil.consumeAllRequestParameters(request);
-    
+
     return channel -> {
       reportError(
           channel,

@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.transport.model;
+package org.opensearch.sql.directquery.transport.model;
 
 import java.io.IOException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.sql.spark.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 
 public class ExecuteDirectQueryActionRequest extends ActionRequest {
   private final ExecuteDirectQueryRequest directQueryRequest;

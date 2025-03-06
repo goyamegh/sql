@@ -28,7 +28,7 @@ public class QueryHandlerRegistry {
    * @param client The client to find a handler for
    * @return An optional containing the handler if found
    */
-  public Optional<QueryHandler> findHandler(Object client) {
+  public Optional<QueryHandler> getQueryHandler(Object client) {
     return handlers.stream()
         .filter(handler -> handler.canHandle(client))
         .findFirst();

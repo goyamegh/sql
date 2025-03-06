@@ -3,20 +3,62 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.rest.model;
+package org.opensearch.sql.directquery.rest.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.opensearch.sql.spark.rest.model.LangType;
+import org.opensearch.sql.prometheus.model.PrometheusOptions;
+import org.opensearch.sql.directquery.model.DataSourceOptions;
 
 @Data
 @NoArgsConstructor
 public class ExecuteDirectQueryRequest {
-  private String datasource;
-  private String query;
-  private String queryType;
-  private String startTime;
-  private String endTime;
-  private String step;
-  private String sessionId;
-  private String queryId;
+  // Required fields
+  private String dataSources;     // Required: From URI path parameter or request body
+  private String query;          // Required: String for Prometheus, object for CloudWatch
+  private LangType language; // Required: SQL, PPL, or PROMQL
+  private String sourceVersion;  // Required: API version
+  
+  // Optional fields
+  private Integer maxResults;    // Optional: limit for Prometheus, maxDataPoints for CW
+  private Integer timeout;       // Optional: number of seconds
+  private DataSourceOptions options; // Optional: Source specific arguments
+  
+  // Session management
+  private String sessionId;      // For session management
+
+  /**
+   * Helper method to get PrometheusOptions.
+   * If options is already PrometheusOptions, returns it.
+   * Otherwise, returns a new empty PrometheusOptions.
+   *
+   * @return PrometheusOptions object
+   */
+  public PrometheusOptions getPrometheusOptions() {
+    if (options instanceof PrometheusOptions) {
+      return (PrometheusOptions) options;
+    }
+    
+    // Create new PrometheusOptions if options is null or not PrometheusOptions
+    return new PrometheusOptions();
+  }
+
+  /**
+   * Set Prometheus options.
+   *
+   * @param prometheusOptions The Prometheus options
+   */
+  public void setPrometheusOptions(PrometheusOptions prometheusOptions) {
+    this.options = prometheusOptions;
+  }
+  
+  /**
+   * Set language type directly from LangType.
+   *
+   * @param langType The language type
+   */
+  public void setLanguage(LangType langType) {
+    this.language = langType;
+  }
 }
