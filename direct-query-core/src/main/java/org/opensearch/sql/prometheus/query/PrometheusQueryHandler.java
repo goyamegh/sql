@@ -11,7 +11,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasource.query.QueryHandler;
-import org.opensearch.sql.directquery.rest.model.BaseDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
@@ -43,10 +42,7 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
   }
 
   @Override
-  public String executeQuery(PrometheusClient client, BaseDirectQueryRequest request) throws IOException {
-    if (request instanceof GetDirectQueryResourcesRequest) {
-      return this.executeGetResourcesQuery(client, (GetDirectQueryResourcesRequest) request);
-    }
+  public String executeQuery(PrometheusClient client, ExecuteDirectQueryRequest request) throws IOException {
     return SecurityAccess.doPrivileged(() -> {
       try {
         PrometheusOptions options = ((ExecuteDirectQueryRequest) request).getPrometheusOptions();
@@ -76,7 +72,8 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
     });
   }
 
-  private String executeGetResourcesQuery(PrometheusClient client, GetDirectQueryResourcesRequest request) {
+  @Override
+  public String getResources(PrometheusClient client, GetDirectQueryResourcesRequest request) {
     return SecurityAccess.doPrivileged(() -> {
       try {
         switch (request.getResourceType().toUpperCase()) {

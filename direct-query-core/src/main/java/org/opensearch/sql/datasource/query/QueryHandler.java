@@ -7,7 +7,8 @@ package org.opensearch.sql.datasource.query;
 
 import java.io.IOException;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.directquery.rest.model.BaseDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 
 /**
  * Interface for handling queries for specific data source types.
@@ -30,7 +31,9 @@ public interface QueryHandler<T> {
    * @return JSON string result of the query
    * @throws IOException If query execution fails
    */
-  String executeQuery(T client, BaseDirectQueryRequest request) throws IOException;
+  String executeQuery(T client, ExecuteDirectQueryRequest request) throws IOException;
+
+  String getResources(T client, GetDirectQueryResourcesRequest request) throws IOException;
 
   /**
    * Checks if this handler can handle the given client type.

@@ -21,9 +21,9 @@ import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
-import org.opensearch.sql.directquery.transport.TransportExecuteDirectQueryRequestAction;
-import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionRequest;
-import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
+import org.opensearch.sql.directquery.transport.TransportGetDirectQueryResourcesRequestAction;
+import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionRequest;
+import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.util.RestRequestUtil;
 import org.opensearch.transport.client.node.NodeClient;
@@ -93,11 +93,11 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
             nodeClient,
             () ->
                 nodeClient.execute(
-                    TransportExecuteDirectQueryRequestAction.ACTION_TYPE,
-                    new ExecuteDirectQueryActionRequest(directQueryRequest),
+                    TransportGetDirectQueryResourcesRequestAction.ACTION_TYPE,
+                    new GetDirectQueryResourcesActionRequest(directQueryRequest),
                     new ActionListener<>() {
                       @Override
-                      public void onResponse(ExecuteDirectQueryActionResponse response) {
+                      public void onResponse(GetDirectQueryResourcesActionResponse response) {
                         restChannel.sendResponse(
                             new BytesRestResponse(
                                 RestStatus.OK,

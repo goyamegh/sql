@@ -7,21 +7,19 @@ package org.opensearch.sql.directquery.rest.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.opensearch.sql.spark.rest.model.LangType;
-import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.directquery.model.DataSourceOptions;
-
-import java.util.Map;
+import org.opensearch.sql.prometheus.model.PrometheusOptions;
+import org.opensearch.sql.spark.rest.model.LangType;
 
 @Data
 @NoArgsConstructor
-public class ExecuteDirectQueryRequest extends BaseDirectQueryRequest {
+public class ExecuteDirectQueryRequest {
   // Required fields
   private String dataSources;     // Required: From URI path parameter or request body
   private String query;          // Required: String for Prometheus, object for CloudWatch
   private LangType language; // Required: SQL, PPL, or PROMQL
   private String sourceVersion;  // Required: API version
-  
+
   // Optional fields
   private Integer maxResults;    // Optional: limit for Prometheus, maxDataPoints for CW
   private Integer timeout;       // Optional: number of seconds
@@ -41,7 +39,7 @@ public class ExecuteDirectQueryRequest extends BaseDirectQueryRequest {
     if (options instanceof PrometheusOptions) {
       return (PrometheusOptions) options;
     }
-    
+
     // Create new PrometheusOptions if options is null or not PrometheusOptions
     return new PrometheusOptions();
   }
@@ -54,7 +52,7 @@ public class ExecuteDirectQueryRequest extends BaseDirectQueryRequest {
   public void setPrometheusOptions(PrometheusOptions prometheusOptions) {
     this.options = prometheusOptions;
   }
-  
+
   /**
    * Set language type directly from LangType.
    *

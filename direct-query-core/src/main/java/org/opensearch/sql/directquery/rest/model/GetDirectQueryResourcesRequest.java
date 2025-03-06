@@ -7,9 +7,10 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
-public class GetDirectQueryResourcesRequest extends BaseDirectQueryRequest {
-  String resourceType;
-  String resourceName;
+public class GetDirectQueryResourcesRequest {
+  private String dataSources;
+  private String resourceType;
+  private String resourceName;
 
   // Optional fields
   private Map<String, String> queryParams;

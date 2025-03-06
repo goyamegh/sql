@@ -12,7 +12,6 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.directquery.DirectQueryExecutorService;
 import org.opensearch.sql.directquery.DirectQueryExecutorServiceImpl;
-import org.opensearch.sql.directquery.rest.model.BaseDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionRequest;
@@ -45,7 +44,7 @@ public class TransportExecuteDirectQueryRequestAction
       ExecuteDirectQueryActionRequest request,
       ActionListener<ExecuteDirectQueryActionResponse> listener) {
     try {
-      BaseDirectQueryRequest directQueryRequest = request.getDirectQueryRequest();
+      ExecuteDirectQueryRequest directQueryRequest = request.getDirectQueryRequest();
       
       ExecuteDirectQueryResponse response = directQueryExecutorService.executeDirectQuery(directQueryRequest);
       String responseContent =

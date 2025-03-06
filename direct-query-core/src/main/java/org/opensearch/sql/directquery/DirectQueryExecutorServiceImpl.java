@@ -11,8 +11,10 @@ import java.util.UUID;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
-import org.opensearch.sql.directquery.rest.model.BaseDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
+import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
 
 public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorService {
 
@@ -27,7 +29,7 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
   }
 
   @Override
-  public ExecuteDirectQueryResponse executeDirectQuery(BaseDirectQueryRequest request) {
+  public ExecuteDirectQueryResponse executeDirectQuery(ExecuteDirectQueryRequest request) {
     // TODO: Replace with the data source query id.
     String queryId = UUID.randomUUID().toString();
     String sessionId = request.getSessionId(); // Session ID is passed as is
@@ -49,5 +51,26 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
       result = "{\"error\": \"" + e.getMessage() + "\"}";
     }
     return new ExecuteDirectQueryResponse(queryId, result, sessionId);
+  }
+
+  @Override
+  public GetDirectQueryResourcesResponse getDirectQueryResources(GetDirectQueryResourcesRequest request) {
+    String result;
+    try {
+      Object client = dataSourceClientFactory.createClient(request.getDataSources());
+      result = queryHandlerRegistry.getQueryHandler(client)
+          .map(handler -> {
+            try {
+              return handler.getResources(client, request);
+            } catch (IOException e) {
+              return "{\"error\": \"Error getting resources: " + e.getMessage() + "\"}";
+            }
+          })
+          .orElse("{\"error\": \"Unsupported data source type\"}");
+
+    } catch (Exception e) {
+      result = "{\"error\": \"" + e.getMessage() + "\"}";
+    }
+    return new GetDirectQueryResourcesResponse(result);
   }
 }

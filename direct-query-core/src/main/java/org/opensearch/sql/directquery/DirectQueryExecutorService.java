@@ -5,9 +5,10 @@
 
 package org.opensearch.sql.directquery;
 
-import org.opensearch.sql.directquery.rest.model.BaseDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
+import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
 
 public interface DirectQueryExecutorService {
 
@@ -17,6 +18,7 @@ public interface DirectQueryExecutorService {
    * @param request The direct query request
    * @return A response containing the result
    */
-  ExecuteDirectQueryResponse executeDirectQuery(BaseDirectQueryRequest request);
-  
+  ExecuteDirectQueryResponse executeDirectQuery(ExecuteDirectQueryRequest request);
+
+  GetDirectQueryResourcesResponse getDirectQueryResources(GetDirectQueryResourcesRequest request);
 }
