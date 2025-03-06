@@ -15,10 +15,10 @@ import org.opensearch.common.inject.Inject;
  */
 public class QueryHandlerRegistry {
   
-  private final List<QueryHandler> handlers;
+  private final List<QueryHandler<?>> handlers;
   
   @Inject
-  public QueryHandlerRegistry(List<QueryHandler> handlers) {
+  public QueryHandlerRegistry(List<QueryHandler<?>> handlers) {
     this.handlers = handlers;
   }
   
@@ -26,11 +26,13 @@ public class QueryHandlerRegistry {
    * Finds a handler that can process the given client.
    * 
    * @param client The client to find a handler for
+   * @param <T> The type of client
    * @return An optional containing the handler if found
    */
-  public Optional<QueryHandler> getQueryHandler(Object client) {
+  public <T> Optional<QueryHandler<T>> getQueryHandler(T client) {
     return handlers.stream()
         .filter(handler -> handler.canHandle(client))
+        .map(handler -> (QueryHandler<T>) handler)
         .findFirst();
   }
 }

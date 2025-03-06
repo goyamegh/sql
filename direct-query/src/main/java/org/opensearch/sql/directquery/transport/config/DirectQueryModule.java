@@ -34,15 +34,15 @@ public class DirectQueryModule extends AbstractModule {
 
   @Provides
   @Singleton
-  public List<QueryHandler> queryHandlers() {
-    List<QueryHandler> handlers = new ArrayList<>();
+  public List<QueryHandler<?>> queryHandlers() {
+    List<QueryHandler<?>> handlers = new ArrayList<>();
     handlers.add(new PrometheusQueryHandler());
     return handlers;
   }
   
   @Provides
   @Singleton
-  public QueryHandlerRegistry queryHandlerRegistry(List<QueryHandler> queryHandlers) {
+  public QueryHandlerRegistry queryHandlerRegistry(List<QueryHandler<?>> queryHandlers) {
     return new QueryHandlerRegistry(queryHandlers);
   }
 

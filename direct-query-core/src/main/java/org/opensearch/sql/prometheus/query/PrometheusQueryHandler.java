@@ -24,9 +24,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public class PrometheusQueryHandler implements QueryHandler {
-  private static final Logger LOG =
-      LogManager.getLogger(PrometheusQueryHandler.class);
+public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
+  private static final Logger LOG = LogManager.getLogger(PrometheusQueryHandler.class);
 
   @Override
   public DataSourceType getSupportedDataSourceType() {
@@ -39,9 +38,14 @@ public class PrometheusQueryHandler implements QueryHandler {
   }
 
   @Override
-  public String executeQuery(Object client, BaseDirectQueryRequest request) throws IOException {
+  public Class<PrometheusClient> getClientClass() {
+    return PrometheusClient.class;
+  }
+
+  @Override
+  public String executeQuery(PrometheusClient client, BaseDirectQueryRequest request) throws IOException {
     if (request instanceof GetDirectQueryResourcesRequest) {
-      return this.executeGetResourcesQuery((PrometheusClient) client, (GetDirectQueryResourcesRequest) request);
+      return this.executeGetResourcesQuery(client, (GetDirectQueryResourcesRequest) request);
     }
     return SecurityAccess.doPrivileged(() -> {
       try {
@@ -55,7 +59,7 @@ public class PrometheusQueryHandler implements QueryHandler {
 
         if (options.getQueryType() == PrometheusQueryType.RANGE) {
 
-          JSONObject metricData = ((PrometheusClient) client).queryRange(
+          JSONObject metricData = client.queryRange(
               ((ExecuteDirectQueryRequest) request).getQuery(),
               Long.parseLong(startTimeStr),
               Long.parseLong(endTimeStr),
@@ -72,21 +76,21 @@ public class PrometheusQueryHandler implements QueryHandler {
     });
   }
 
-  private String executeGetResourcesQuery(PrometheusClient prometheusClient, GetDirectQueryResourcesRequest request) {
+  private String executeGetResourcesQuery(PrometheusClient client, GetDirectQueryResourcesRequest request) {
     return SecurityAccess.doPrivileged(() -> {
       try {
         switch (request.getResourceType().toUpperCase()) {
           case "LABELS":
-            List<String> labels = prometheusClient.getLabels(request.getQueryParams());
+            List<String> labels = client.getLabels(request.getQueryParams());
             return new JSONArray(labels).toString();
           case "LABEL":
-            List<String> labelValues = prometheusClient.getLabel(request.getResourceName(), request.getQueryParams());
+            List<String> labelValues = client.getLabel(request.getResourceName(), request.getQueryParams());
             return new JSONArray(labelValues).toString();
           case "METADATA":
-            Map<String, List<MetricMetadata>> metadata = prometheusClient.getAllMetrics(request.getQueryParams());
+            Map<String, List<MetricMetadata>> metadata = client.getAllMetrics(request.getQueryParams());
             return new JSONObject(metadata).toString();
           case "SERIES":
-            List<Map<String, String>> series = prometheusClient.getSeries(request.getQueryParams());
+            List<Map<String, String>> series = client.getSeries(request.getQueryParams());
             return new JSONArray(series).toString();
         }
         return "{\"error\": \"Invalid resource type: " + request.getResourceType() + "\"}";
@@ -95,6 +99,5 @@ public class PrometheusQueryHandler implements QueryHandler {
         return "{\"error\": \"" + e.getMessage() + "\"}";
       }
     });
-
   }
 }

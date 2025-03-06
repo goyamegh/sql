@@ -12,7 +12,6 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
 import org.opensearch.sql.directquery.rest.model.BaseDirectQueryRequest;
-import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 
 public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorService {
