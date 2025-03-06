@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.directquery;
 
+import org.opensearch.sql.directquery.rest.model.BaseDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 
@@ -16,6 +17,6 @@ public interface DirectQueryExecutorService {
    * @param request The direct query request
    * @return A response containing the result
    */
-  ExecuteDirectQueryResponse executeDirectQuery(ExecuteDirectQueryRequest request);
+  ExecuteDirectQueryResponse executeDirectQuery(BaseDirectQueryRequest request);
   
 }

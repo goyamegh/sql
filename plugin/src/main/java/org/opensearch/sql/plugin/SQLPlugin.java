@@ -71,6 +71,12 @@ import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportPatchDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
+import org.opensearch.sql.directquery.DirectQueryExecutorService;
+import org.opensearch.sql.directquery.rest.RestDirectQueryManagementAction;
+import org.opensearch.sql.directquery.rest.RestDirectQueryResourcesManagementAction;
+import org.opensearch.sql.directquery.transport.TransportExecuteDirectQueryRequestAction;
+import org.opensearch.sql.directquery.transport.config.DirectQueryModule;
+import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -91,24 +97,18 @@ import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
-import org.opensearch.sql.spark.directquery.DirectQueryExecutorService;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
-import org.opensearch.sql.spark.rest.RestDirectQueryManagementAction;
-import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
 import org.opensearch.sql.spark.scheduler.job.ScheduledAsyncQueryJobRunner;
 import org.opensearch.sql.spark.scheduler.parser.OpenSearchScheduleQueryJobRequestParser;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
-import org.opensearch.sql.spark.transport.TransportExecuteDirectQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportGetAsyncQueryResultAction;
 import org.opensearch.sql.spark.transport.config.AsyncExecutorServiceModule;
-import org.opensearch.sql.spark.transport.config.DirectQueryModule;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
-import org.opensearch.sql.spark.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
@@ -163,7 +163,8 @@ public class SQLPlugin extends Plugin
         new RestQuerySettingsAction(settings, restController),
         new RestDataSourceQueryAction((OpenSearchSettings) pluginSettings),
         new RestAsyncQueryManagementAction((OpenSearchSettings) pluginSettings),
-        new RestDirectQueryManagementAction((OpenSearchSettings) pluginSettings));
+        new RestDirectQueryManagementAction((OpenSearchSettings) pluginSettings),
+        new RestDirectQueryResourcesManagementAction((OpenSearchSettings) pluginSettings));
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */

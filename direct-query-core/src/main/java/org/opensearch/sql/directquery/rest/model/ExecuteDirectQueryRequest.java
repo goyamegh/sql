@@ -11,9 +11,11 @@ import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.directquery.model.DataSourceOptions;
 
+import java.util.Map;
+
 @Data
 @NoArgsConstructor
-public class ExecuteDirectQueryRequest {
+public class ExecuteDirectQueryRequest extends BaseDirectQueryRequest {
   // Required fields
   private String dataSources;     // Required: From URI path parameter or request body
   private String query;          // Required: String for Prometheus, object for CloudWatch
@@ -24,7 +26,7 @@ public class ExecuteDirectQueryRequest {
   private Integer maxResults;    // Optional: limit for Prometheus, maxDataPoints for CW
   private Integer timeout;       // Optional: number of seconds
   private DataSourceOptions options; // Optional: Source specific arguments
-  
+
   // Session management
   private String sessionId;      // For session management
 

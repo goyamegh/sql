@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
+import org.opensearch.sql.directquery.rest.model.BaseDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 
@@ -27,7 +28,7 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
   }
 
   @Override
-  public ExecuteDirectQueryResponse executeDirectQuery(ExecuteDirectQueryRequest request) {
+  public ExecuteDirectQueryResponse executeDirectQuery(BaseDirectQueryRequest request) {
     // TODO: Replace with the data source query id.
     String queryId = UUID.randomUUID().toString();
     String sessionId = request.getSessionId(); // Session ID is passed as is

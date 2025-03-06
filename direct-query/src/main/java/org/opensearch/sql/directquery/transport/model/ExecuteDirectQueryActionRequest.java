@@ -10,12 +10,12 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
+import org.opensearch.sql.directquery.rest.model.BaseDirectQueryRequest;
 
 public class ExecuteDirectQueryActionRequest extends ActionRequest {
-  private final ExecuteDirectQueryRequest directQueryRequest;
+  private final BaseDirectQueryRequest directQueryRequest;
 
-  public ExecuteDirectQueryActionRequest(ExecuteDirectQueryRequest directQueryRequest) {
+  public ExecuteDirectQueryActionRequest(BaseDirectQueryRequest directQueryRequest) {
     this.directQueryRequest = directQueryRequest;
   }
 
@@ -23,7 +23,7 @@ public class ExecuteDirectQueryActionRequest extends ActionRequest {
     super(in);
     // In a real implementation, deserialize the request
     // This is just a placeholder since we don't have the full serialization code
-    this.directQueryRequest = new ExecuteDirectQueryRequest();
+    this.directQueryRequest = new BaseDirectQueryRequest();
   }
 
   @Override
@@ -32,7 +32,7 @@ public class ExecuteDirectQueryActionRequest extends ActionRequest {
     // Add serialization logic if needed
   }
 
-  public ExecuteDirectQueryRequest getDirectQueryRequest() {
+  public BaseDirectQueryRequest getDirectQueryRequest() {
     return directQueryRequest;
   }
 
