@@ -7,14 +7,15 @@ package org.opensearch.sql.prometheus.query;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasource.query.QueryHandler;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
+import org.opensearch.sql.prometheus.exceptions.PrometheusClientException;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
@@ -86,27 +87,28 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
   }
 
   @Override
-  public String getResources(PrometheusClient client, GetDirectQueryResourcesRequest request) {
+  public GetDirectQueryResourcesResponse<?> getResources(PrometheusClient client, GetDirectQueryResourcesRequest request) {
     return SecurityAccess.doPrivileged(() -> {
       try {
         switch (request.getResourceType().toUpperCase()) {
           case "LABELS":
             List<String> labels = client.getLabels(request.getQueryParams());
-            return new JSONArray(labels).toString();
+            return GetDirectQueryResourcesResponse.withStringList(labels);
           case "LABEL":
             List<String> labelValues = client.getLabel(request.getResourceName(), request.getQueryParams());
-            return new JSONArray(labelValues).toString();
+            return GetDirectQueryResourcesResponse.withStringList(labelValues);
           case "METADATA":
             Map<String, List<MetricMetadata>> metadata = client.getAllMetrics(request.getQueryParams());
-            return new JSONObject(metadata).toString();
+            return GetDirectQueryResourcesResponse.withMap(metadata);
           case "SERIES":
             List<Map<String, String>> series = client.getSeries(request.getQueryParams());
-            return new JSONArray(series).toString();
+            return GetDirectQueryResourcesResponse.withStringMapList(series);
+          default:
+            throw new IllegalArgumentException("Invalid resource type: " + request.getResourceType());
         }
-        return "{\"error\": \"Invalid resource type: " + request.getResourceType() + "\"}";
       } catch (IOException e) {
-        LOG.error("Error executing query", e);
-        return "{\"error\": \"" + e.getMessage() + "\"}";
+        LOG.error("Error getting resources", e);
+        throw new PrometheusClientException(String.format("Error while getting resources for %s: %s", request.getResourceType(), e.getMessage()));
       }
     });
   }

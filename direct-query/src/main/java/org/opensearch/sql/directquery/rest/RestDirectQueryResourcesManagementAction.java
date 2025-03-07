@@ -40,7 +40,7 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
 
   public static final String DIRECT_QUERY_RESOURCES_ACTIONS = "direct_query_resources_actions";
-  public static final String BASE_DIRECT_QUERY_RESOURCES_URL = "/_plugins/_direct_query/{dataSources}/resources";
+  public static final String BASE_DIRECT_QUERY_RESOURCES_URL = "/_plugins/_directquery/{dataSources}/resources";
 
   private static final Logger LOG = LogManager.getLogger(RestDirectQueryResourcesManagementAction.class);
   private final OpenSearchSettings settings;
@@ -138,6 +138,7 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
   private static boolean isClientError(Exception e) {
     return e instanceof IllegalArgumentException
         || e instanceof IllegalStateException
+        // TODO fix import
         || e instanceof DataSourceClientException
         || e instanceof IllegalAccessException;
   }
