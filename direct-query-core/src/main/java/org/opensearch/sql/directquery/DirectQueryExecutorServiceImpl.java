@@ -36,7 +36,10 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
 
     String result;
     try {
-      Object client = dataSourceClientFactory.createClient(request.getDataSources());
+      // Let Java infer the type
+      var client = dataSourceClientFactory.createClient(request.getDataSources());
+      
+      // No need to specify Object type parameter, let the registry infer it
       result = queryHandlerRegistry.getQueryHandler(client)
           .map(handler -> {
             try {
@@ -56,7 +59,7 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
   @Override
   public GetDirectQueryResourcesResponse<?> getDirectQueryResources(
       GetDirectQueryResourcesRequest request) {
-    Object client = dataSourceClientFactory.createClient(request.getDataSources());
+    var client = dataSourceClientFactory.createClient(request.getDataSources());
     return queryHandlerRegistry.getQueryHandler(client)
         .map(handler -> {
           try {

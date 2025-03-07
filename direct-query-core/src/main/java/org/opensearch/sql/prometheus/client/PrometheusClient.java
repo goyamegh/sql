@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
+import org.opensearch.sql.prometheus.model.MetricMetadata;
 
 public interface PrometheusClient {
 

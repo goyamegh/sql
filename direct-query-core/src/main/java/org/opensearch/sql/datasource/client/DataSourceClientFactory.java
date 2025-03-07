@@ -63,13 +63,15 @@ public class DataSourceClientFactory {
   }
 
   /**
-   * Creates a client for the specified data source.
+   * Creates a client for the specified data source with appropriate type.
    *
+   * @param <T> The type of client to create
    * @param dataSourceName The name of the data source
    * @return The appropriate client for the data source type
    * @throws DataSourceClientException If client creation fails
    */
-  public Object createClient(String dataSourceName) throws DataSourceClientException {
+  @SuppressWarnings("unchecked")
+  public <T> T createClient(String dataSourceName) throws DataSourceClientException {
     try {
       if (!dataSourceService.dataSourceExists(dataSourceName)) {
         throw new DataSourceClientException("Data source does not exist: " + dataSourceName);
@@ -78,7 +80,7 @@ public class DataSourceClientFactory {
       DataSourceMetadata metadata = dataSourceService.getDataSourceMetadata(dataSourceName);
       DataSourceType dataSourceType = metadata.getConnector();
 
-      return createClientForType(dataSourceType.name(), metadata);
+      return (T) createClientForType(dataSourceType.name(), metadata);
     } catch (Exception e) {
       if (e instanceof DataSourceClientException) {
         throw e;
@@ -98,8 +100,8 @@ public class DataSourceClientFactory {
     }
   }
 
-    // TODO: Move this to a common place for this file and PrometheusStorageFactory
-    private PrometheusClient createPrometheusClient(DataSourceMetadata metadata) {
+  // TODO: Move this to a common place for this file and PrometheusStorageFactory
+  private PrometheusClient createPrometheusClient(DataSourceMetadata metadata) {
     try {
       // replace this with validate properties in PrometheusStorageFactory
       String host = metadata.getProperties().get(URI);

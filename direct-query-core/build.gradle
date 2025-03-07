@@ -17,7 +17,6 @@ dependencies {
     api project(':core')
     implementation project(':protocol')
     implementation project(':opensearch')
-    implementation project(':prometheus')
     implementation project(':datasources')
     implementation project(':async-query-core')
     

@@ -29,9 +29,19 @@ public class QueryHandlerRegistry {
    * @param <T> The type of client
    * @return An optional containing the handler if found
    */
+  @SuppressWarnings("unchecked")
   public <T> Optional<QueryHandler<T>> getQueryHandler(T client) {
     return handlers.stream()
-        .filter(handler -> handler.canHandle(client))
+        .filter(handler -> {
+          try {
+            // Get the handler's client class and check if it's compatible with our client
+            Class<?> handlerClientClass = handler.getClientClass();
+            return handlerClientClass.isInstance(client) && 
+                   ((QueryHandler<T>)handler).canHandle(client);
+          } catch (ClassCastException e) {
+            return false;
+          }
+        })
         .map(handler -> (QueryHandler<T>) handler)
         .findFirst();
   }

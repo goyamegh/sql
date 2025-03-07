@@ -15,10 +15,10 @@ import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
-import org.opensearch.sql.prometheus.exceptions.PrometheusClientException;
+import org.opensearch.sql.prometheus.exception.PrometheusClientException;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.prometheus.model.PrometheusQueryType;
-import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
+import org.opensearch.sql.prometheus.model.MetricMetadata;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,7 +33,7 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
   }
 
   @Override
-  public boolean canHandle(Object client) {
+  public boolean canHandle(PrometheusClient client) {
     return client instanceof PrometheusClient;
   }
 

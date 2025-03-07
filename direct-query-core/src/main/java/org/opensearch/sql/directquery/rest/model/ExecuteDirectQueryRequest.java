@@ -24,8 +24,6 @@ public class ExecuteDirectQueryRequest {
   private Integer maxResults;    // Optional: limit for Prometheus, maxDataPoints for CW
   private Integer timeout;       // Optional: number of seconds
   private DataSourceOptions options; // Optional: Source specific arguments
-
-  // Session management
   private String sessionId;      // For session management
 
   /**

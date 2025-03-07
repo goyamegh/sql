@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.prometheus.exceptions;
+package org.opensearch.sql.prometheus.exception;
 
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 

@@ -26,8 +26,8 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.opensearch.sql.prometheus.exceptions.PrometheusClientException;
-import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
+import org.opensearch.sql.prometheus.exception.PrometheusClientException;
+import org.opensearch.sql.prometheus.model.MetricMetadata;
 
 public class PrometheusClientImpl implements PrometheusClient {
 
@@ -57,40 +57,23 @@ public class PrometheusClientImpl implements PrometheusClient {
   @Override
   public JSONObject queryRange(String query, Long start, Long end, String step, 
                             Integer limit, Integer timeout) throws IOException {
-    Map<String, String> params = new HashMap<>();
-    params.put("query", query);
-    params.put("start", start.toString());
-    params.put("end", end.toString());
-    params.put("step", step);
-    
-    // Add optional parameters if provided
-    if (limit != null) {
-        params.put("limit", limit.toString());
-    }
-    if (timeout != null) {
-        params.put("timeout", timeout.toString());
-    }
-    
-    String queryString = params.entrySet().stream()
-        .map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "=" +
-            URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
-        .collect(Collectors.joining("&"));
-    
+    String queryString = buildQueryString(query, start, end, step, limit, timeout);
     String queryUrl = String.format(
         "%s/api/v1/query_range?%s",
         uri.toString().replaceAll("/$", ""),
         queryString);
     
-    logger.info("Making Prometheus query_range request: {}", queryUrl);
+    logger.debug("Making Prometheus query_range request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     
-    logger.info("Executing Prometheus request with headers: {}", request.headers().toString());
+    logger.debug("Executing Prometheus request with headers: {}", request.headers().toString());
     Response response = this.okHttpClient.newCall(request).execute();
     
-    logger.info("Received Prometheus response for query_range: code={}", response);
+    logger.debug("Received Prometheus response for query_range: code={}", response);
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONObject("data");
   }
+  
 
   @Override
   public JSONObject query(String query, Long time, Integer limit, Integer timeout) throws IOException {
@@ -273,5 +256,26 @@ public class PrometheusClientImpl implements PrometheusClient {
             String.format("Request to Prometheus is Unsuccessful with code: %s. Error details: %s", 
                          response.code(), errorBody));
     }
+  }
+
+  private String buildQueryString(String query, Long start, Long end, String step, Integer limit,
+      Integer timeout) {
+    Map<String, String> params = new HashMap<>();
+    params.put("query", query);
+    params.put("start", start.toString());
+    params.put("end", end.toString());
+    params.put("step", step);
+    
+    if (limit != null) {
+        params.put("limit", limit.toString());
+    }
+    if (timeout != null) {
+        params.put("timeout", timeout.toString());
+    }
+
+    return params.entrySet().stream()
+        .map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "=" +
+            URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
+        .collect(Collectors.joining("&"));
   }
 }

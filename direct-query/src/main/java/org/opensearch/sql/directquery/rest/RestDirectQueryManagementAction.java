@@ -41,7 +41,7 @@ import org.opensearch.transport.client.node.NodeClient;
 public class RestDirectQueryManagementAction extends BaseRestHandler {
 
   public static final String DIRECT_QUERY_ACTIONS = "direct_query_actions";
-  public static final String BASE_DIRECT_QUERY_ACTION_URL = "/_plugins/_directquery/_sync/{dataSources}";
+  public static final String BASE_DIRECT_QUERY_ACTION_URL = "/_plugins/_directquery/_query/{dataSources}";
 
   private static final Logger LOG = LogManager.getLogger(RestDirectQueryManagementAction.class);
   private final OpenSearchSettings settings;

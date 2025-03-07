@@ -50,7 +50,7 @@ public interface QueryHandler<T> {
    * @param client The client to check
    * @return true if this handler can handle the client
    */
-  boolean canHandle(Object client);
+  boolean canHandle(T client);
 
   /**
    * Gets the client class this handler supports.
