@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.UUID;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
+import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
@@ -62,21 +63,17 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
   public GetDirectQueryResourcesResponse<?> getDirectQueryResources(
       GetDirectQueryResourcesRequest request) {
     var client = dataSourceClientFactory.createClient(request.getDataSources());
-    return queryHandlerRegistry
-        .getQueryHandler(client)
-        .map(
-            handler -> {
-              try {
-                return handler.getResources(client, request);
-              } catch (IOException e) {
-                // TODO throw client exception
-                return GetDirectQueryResourcesResponse.withError(
-                    "Error getting resources: " + e.getMessage());
-              }
-            })
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Unsupported data source type: " + request.getDataSources()));
+    return queryHandlerRegistry.getQueryHandler(client)
+        .map(handler -> {
+          try {
+            return handler.getResources(client, request);
+          } catch (IOException e) {
+            throw new DataSourceClientException(
+                String.format("Error retrieving resources for data source type: %s",
+                    request.getDataSources()), e);
+          }
+        })
+        .orElseThrow(() -> new IllegalArgumentException(
+            "Unsupported data source type: " + request.getDataSources()));
   }
 }

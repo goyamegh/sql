@@ -14,14 +14,9 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GetDirectQueryResourcesResponse<T> {
   private T data;
-  private String error;
 
-  public GetDirectQueryResourcesResponse(T data) {
+  private GetDirectQueryResourcesResponse(T data) {
     this.data = data;
-  }
-
-  public GetDirectQueryResourcesResponse(String error) {
-    this.error = error;
   }
 
   public static GetDirectQueryResourcesResponse<List<String>> withStringList(List<String> data) {
@@ -35,9 +30,5 @@ public class GetDirectQueryResourcesResponse<T> {
 
   public static <V> GetDirectQueryResourcesResponse<Map<String, V>> withMap(Map<String, V> data) {
     return new GetDirectQueryResourcesResponse<>(data);
-  }
-
-  public static <T> GetDirectQueryResourcesResponse<T> withError(String errorMessage) {
-    return new GetDirectQueryResourcesResponse<>(errorMessage);
   }
 }

@@ -24,7 +24,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
+import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
@@ -148,7 +148,6 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
   private static boolean isClientError(Exception e) {
     return e instanceof IllegalArgumentException
         || e instanceof IllegalStateException
-        // TODO fix import
         || e instanceof DataSourceClientException
         || e instanceof IllegalAccessException;
   }
