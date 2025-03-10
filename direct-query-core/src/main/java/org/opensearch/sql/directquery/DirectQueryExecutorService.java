@@ -20,5 +20,12 @@ public interface DirectQueryExecutorService {
    */
   ExecuteDirectQueryResponse executeDirectQuery(ExecuteDirectQueryRequest request);
 
-  GetDirectQueryResourcesResponse getDirectQueryResources(GetDirectQueryResourcesRequest request);
+  /**
+   * Get resources from a data source.
+   *
+   * @param request The resources request
+   * @return A response containing the requested resources
+   */
+  GetDirectQueryResourcesResponse<?> getDirectQueryResources(
+      GetDirectQueryResourcesRequest request);
 }

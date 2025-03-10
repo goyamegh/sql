@@ -16,7 +16,9 @@ public interface PrometheusClient {
 
   JSONObject queryRange(String query, Long start, Long end, String step) throws IOException;
 
-  JSONObject queryRange(String query, Long start, Long end, String step, Integer limit, Integer timeout) throws IOException;
+  JSONObject queryRange(
+      String query, Long start, Long end, String step, Integer limit, Integer timeout)
+      throws IOException;
 
   List<String> getLabels(String metricName) throws IOException;
 
@@ -26,7 +28,8 @@ public interface PrometheusClient {
 
   Map<String, List<MetricMetadata>> getAllMetrics() throws IOException;
 
-  Map<String, List<MetricMetadata>> getAllMetrics(Map<String, String> queryParams) throws IOException;
+  Map<String, List<MetricMetadata>> getAllMetrics(Map<String, String> queryParams)
+      throws IOException;
 
   List<Map<String, String>> getSeries(Map<String, String> queryParams) throws IOException;
 

@@ -207,11 +207,13 @@ public class SQLPlugin extends Plugin
             TransportCancelAsyncQueryRequestAction.class),
         new ActionHandler<>(
             new ActionType<>(
-                TransportExecuteDirectQueryRequestAction.NAME, ExecuteDirectQueryActionResponse::new),
+                TransportExecuteDirectQueryRequestAction.NAME,
+                ExecuteDirectQueryActionResponse::new),
             TransportExecuteDirectQueryRequestAction.class),
         new ActionHandler<>(
             new ActionType<>(
-                TransportGetDirectQueryResourcesRequestAction.NAME, GetDirectQueryResourcesActionResponse::new),
+                TransportGetDirectQueryResourcesRequestAction.NAME,
+                GetDirectQueryResourcesActionResponse::new),
             TransportGetDirectQueryResourcesRequestAction.class));
   }
 
@@ -266,13 +268,18 @@ public class SQLPlugin extends Plugin
     // Passing the service to Transport actions
     AsyncQueryExecutorService asyncQueryExecutorService =
         injector.getInstance(AsyncQueryExecutorService.class);
-    DirectQueryExecutorService directQueryExecutorService = injector.getInstance(DirectQueryExecutorService.class);
+    DirectQueryExecutorService directQueryExecutorService =
+        injector.getInstance(DirectQueryExecutorService.class);
 
     ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
     return ImmutableList.of(
-        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener, pluginSettings, directQueryExecutorService);
+        dataSourceService,
+        asyncQueryExecutorService,
+        clusterManagerEventListener,
+        pluginSettings,
+        directQueryExecutorService);
   }
 
   @Override

@@ -7,21 +7,22 @@ package org.opensearch.sql.directquery.transport.format;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 
+import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 import org.opensearch.sql.spark.rest.model.LangType;
-import java.util.Map;
 
 @UtilityClass
 public class DirectQueryRequestConverter {
-  
-  public static ExecuteDirectQueryRequest fromXContentParser(XContentParser parser) throws Exception {
+
+  public static ExecuteDirectQueryRequest fromXContentParser(XContentParser parser)
+      throws Exception {
     ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
     Map<String, Object> options = null;
-    
+
     try {
       ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
       while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
@@ -60,15 +61,15 @@ public class DirectQueryRequestConverter {
             options = parser.map();
             break;
           default:
-            parser.skipChildren(); 
+            parser.skipChildren();
         }
       }
-      
+
       // Create the appropriate DataSourceOptions based on language type
       if (request.getLanguage() == LangType.PROMQL) {
         request.setOptions(createPrometheusOptions(options));
       }
-      
+
       return request;
     } catch (Exception e) {
       throw new IllegalArgumentException(

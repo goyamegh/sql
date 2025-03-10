@@ -21,7 +21,8 @@ import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
 public class TransportGetDirectQueryResourcesRequestAction
-    extends HandledTransportAction<GetDirectQueryResourcesActionRequest, GetDirectQueryResourcesActionResponse> {
+    extends HandledTransportAction<
+        GetDirectQueryResourcesActionRequest, GetDirectQueryResourcesActionResponse> {
 
   private final DirectQueryExecutorService directQueryExecutorService;
 
@@ -46,9 +47,11 @@ public class TransportGetDirectQueryResourcesRequestAction
     try {
       GetDirectQueryResourcesRequest directQueryRequest = request.getDirectQueryRequest();
 
-      GetDirectQueryResourcesResponse response = directQueryExecutorService.getDirectQueryResources(directQueryRequest);
+      GetDirectQueryResourcesResponse response =
+          directQueryExecutorService.getDirectQueryResources(directQueryRequest);
       String responseContent =
-          new JsonResponseFormatter<GetDirectQueryResourcesResponse>(JsonResponseFormatter.Style.PRETTY) {
+          new JsonResponseFormatter<GetDirectQueryResourcesResponse>(
+              JsonResponseFormatter.Style.PRETTY) {
             @Override
             protected Object buildJsonObject(GetDirectQueryResourcesResponse response) {
               return response;

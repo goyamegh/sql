@@ -7,7 +7,6 @@ package org.opensearch.sql.directquery;
 
 import java.io.IOException;
 import java.util.UUID;
-
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
@@ -22,8 +21,8 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
   private final QueryHandlerRegistry queryHandlerRegistry;
 
   @Inject
-  public DirectQueryExecutorServiceImpl(DataSourceClientFactory dataSourceClientFactory,
-                                        QueryHandlerRegistry queryHandlerRegistry) {
+  public DirectQueryExecutorServiceImpl(
+      DataSourceClientFactory dataSourceClientFactory, QueryHandlerRegistry queryHandlerRegistry) {
     this.dataSourceClientFactory = dataSourceClientFactory;
     this.queryHandlerRegistry = queryHandlerRegistry;
   }
@@ -38,17 +37,20 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
     try {
       // Let Java infer the type
       var client = dataSourceClientFactory.createClient(request.getDataSources());
-      
+
       // No need to specify Object type parameter, let the registry infer it
-      result = queryHandlerRegistry.getQueryHandler(client)
-          .map(handler -> {
-            try {
-              return handler.executeQuery(client, request);
-            } catch (IOException e) {
-              return "{\"error\": \"Error executing query: " + e.getMessage() + "\"}";
-            }
-          })
-          .orElse("{\"error\": \"Unsupported data source type\"}");
+      result =
+          queryHandlerRegistry
+              .getQueryHandler(client)
+              .map(
+                  handler -> {
+                    try {
+                      return handler.executeQuery(client, request);
+                    } catch (IOException e) {
+                      return "{\"error\": \"Error executing query: " + e.getMessage() + "\"}";
+                    }
+                  })
+              .orElse("{\"error\": \"Unsupported data source type\"}");
 
     } catch (Exception e) {
       result = "{\"error\": \"" + e.getMessage() + "\"}";
@@ -60,16 +62,21 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
   public GetDirectQueryResourcesResponse<?> getDirectQueryResources(
       GetDirectQueryResourcesRequest request) {
     var client = dataSourceClientFactory.createClient(request.getDataSources());
-    return queryHandlerRegistry.getQueryHandler(client)
-        .map(handler -> {
-          try {
-            return handler.getResources(client, request);
-          } catch (IOException e) {
-            // TODO throw client exception
-            return GetDirectQueryResourcesResponse.withError(
-                "Error getting resources: " + e.getMessage());
-          }
-        })
-        .orElseThrow(() -> new IllegalArgumentException("Unsupported data source type: " + request.getDataSources()));
+    return queryHandlerRegistry
+        .getQueryHandler(client)
+        .map(
+            handler -> {
+              try {
+                return handler.getResources(client, request);
+              } catch (IOException e) {
+                // TODO throw client exception
+                return GetDirectQueryResourcesResponse.withError(
+                    "Error getting resources: " + e.getMessage());
+              }
+            })
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "Unsupported data source type: " + request.getDataSources()));
   }
 }

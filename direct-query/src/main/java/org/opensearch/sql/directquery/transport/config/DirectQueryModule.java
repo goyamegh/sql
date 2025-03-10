@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.directquery.transport.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
@@ -17,18 +19,15 @@ import org.opensearch.sql.directquery.DirectQueryExecutorService;
 import org.opensearch.sql.directquery.DirectQueryExecutorServiceImpl;
 import org.opensearch.sql.prometheus.query.PrometheusQueryHandler;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class DirectQueryModule extends AbstractModule {
 
   @Override
-  protected void configure() {
-  }
+  protected void configure() {}
 
   @Provides
   @Singleton
-  public DataSourceClientFactory dataSourceClientFactory(DataSourceService dataSourceService, Settings settings) {
+  public DataSourceClientFactory dataSourceClientFactory(
+      DataSourceService dataSourceService, Settings settings) {
     return new DataSourceClientFactory(dataSourceService, settings);
   }
 
@@ -39,7 +38,7 @@ public class DirectQueryModule extends AbstractModule {
     handlers.add(new PrometheusQueryHandler());
     return handlers;
   }
-  
+
   @Provides
   @Singleton
   public QueryHandlerRegistry queryHandlerRegistry(List<QueryHandler<?>> queryHandlers) {
@@ -49,8 +48,8 @@ public class DirectQueryModule extends AbstractModule {
   @Provides
   @Singleton
   public DirectQueryExecutorService directQueryExecutorServiceImpl(
-      DataSourceClientFactory clientFactory,
-      QueryHandlerRegistry queryHandlerRegistry) {
-    return (DirectQueryExecutorService) new DirectQueryExecutorServiceImpl(clientFactory, queryHandlerRegistry);
+      DataSourceClientFactory clientFactory, QueryHandlerRegistry queryHandlerRegistry) {
+    return (DirectQueryExecutorService)
+        new DirectQueryExecutorServiceImpl(clientFactory, queryHandlerRegistry);
   }
 }

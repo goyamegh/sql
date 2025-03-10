@@ -5,13 +5,12 @@
 
 package org.opensearch.sql.directquery.transport.model;
 
+import java.io.IOException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 @RequiredArgsConstructor
 public class GetDirectQueryResourcesActionResponse extends ActionResponse {

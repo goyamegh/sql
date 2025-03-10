@@ -5,8 +5,5 @@
 
 package org.opensearch.sql.directquery.model;
 
-/**
- * Interface for data source specific options.
- */
-public interface DataSourceOptions {
-}
+/** Interface for data source specific options. */
+public interface DataSourceOptions {}

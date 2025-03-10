@@ -5,9 +5,7 @@
 
 package org.opensearch.sql.prometheus.model;
 
-/**
- * Enum representing the types of Prometheus queries.
- */
+/** Enum representing the types of Prometheus queries. */
 public enum PrometheusQueryType {
   INSTANT("instant"),
   RANGE("range");

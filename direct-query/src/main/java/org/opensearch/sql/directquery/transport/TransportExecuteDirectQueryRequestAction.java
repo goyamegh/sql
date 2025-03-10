@@ -21,10 +21,11 @@ import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
 public class TransportExecuteDirectQueryRequestAction
-    extends HandledTransportAction<ExecuteDirectQueryActionRequest, ExecuteDirectQueryActionResponse> {
+    extends HandledTransportAction<
+        ExecuteDirectQueryActionRequest, ExecuteDirectQueryActionResponse> {
 
   private final DirectQueryExecutorService directQueryExecutorService;
-  
+
   public static final String NAME = "indices:data/read/direct_query";
   public static final ActionType<ExecuteDirectQueryActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, ExecuteDirectQueryActionResponse::new);
@@ -45,19 +46,20 @@ public class TransportExecuteDirectQueryRequestAction
       ActionListener<ExecuteDirectQueryActionResponse> listener) {
     try {
       ExecuteDirectQueryRequest directQueryRequest = request.getDirectQueryRequest();
-      
-      ExecuteDirectQueryResponse response = directQueryExecutorService.executeDirectQuery(directQueryRequest);
+
+      ExecuteDirectQueryResponse response =
+          directQueryExecutorService.executeDirectQuery(directQueryRequest);
       String responseContent =
-          new JsonResponseFormatter<ExecuteDirectQueryResponse>(JsonResponseFormatter.Style.PRETTY) {
+          new JsonResponseFormatter<ExecuteDirectQueryResponse>(
+              JsonResponseFormatter.Style.PRETTY) {
             @Override
             protected Object buildJsonObject(ExecuteDirectQueryResponse response) {
               return response;
             }
           }.format(response);
-      listener.onResponse(new ExecuteDirectQueryActionResponse(
-          response.getQueryId(),
-          responseContent,
-          response.getSessionId()));
+      listener.onResponse(
+          new ExecuteDirectQueryActionResponse(
+              response.getQueryId(), responseContent, response.getSessionId()));
     } catch (Exception e) {
       listener.onFailure(e);
     }

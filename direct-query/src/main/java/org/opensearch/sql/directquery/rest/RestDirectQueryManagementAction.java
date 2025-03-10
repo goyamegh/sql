@@ -12,7 +12,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
-
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,7 +40,8 @@ import org.opensearch.transport.client.node.NodeClient;
 public class RestDirectQueryManagementAction extends BaseRestHandler {
 
   public static final String DIRECT_QUERY_ACTIONS = "direct_query_actions";
-  public static final String BASE_DIRECT_QUERY_ACTION_URL = "/_plugins/_directquery/_query/{dataSources}";
+  public static final String BASE_DIRECT_QUERY_ACTION_URL =
+      "/_plugins/_directquery/_query/{dataSources}";
 
   private static final Logger LOG = LogManager.getLogger(RestDirectQueryManagementAction.class);
   private final OpenSearchSettings settings;
@@ -53,9 +53,7 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
 
   @Override
   public List<Route> routes() {
-    return ImmutableList.of(
-        new Route(POST, BASE_DIRECT_QUERY_ACTION_URL)
-    );
+    return ImmutableList.of(new Route(POST, BASE_DIRECT_QUERY_ACTION_URL));
   }
 
   @Override
@@ -65,21 +63,22 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
 
     // Also consume all other request parameters to prevent similar errors
     RestRequestUtil.consumeAllRequestParameters(restRequest);
-    
+
     if (!dataSourcesEnabled()) {
       return dataSourcesDisabledError(restRequest);
     }
 
-      if (Objects.requireNonNull(restRequest.method()) == POST) {
-          return executeDirectQueryRequest(restRequest, nodeClient, dataSources);
-      }
-      return restChannel ->
-              restChannel.sendResponse(
-                      new BytesRestResponse(
-                              RestStatus.METHOD_NOT_ALLOWED, String.valueOf(restRequest.method())));
+    if (Objects.requireNonNull(restRequest.method()) == POST) {
+      return executeDirectQueryRequest(restRequest, nodeClient, dataSources);
+    }
+    return restChannel ->
+        restChannel.sendResponse(
+            new BytesRestResponse(
+                RestStatus.METHOD_NOT_ALLOWED, String.valueOf(restRequest.method())));
   }
 
-  private RestChannelConsumer executeDirectQueryRequest(RestRequest restRequest, NodeClient nodeClient, String dataSources) {
+  private RestChannelConsumer executeDirectQueryRequest(
+      RestRequest restRequest, NodeClient nodeClient, String dataSources) {
     return restChannel -> {
       try {
         ExecuteDirectQueryRequest directQueryRequest =
@@ -125,7 +124,8 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
     };
   }
 
-  private void handleException(Exception e, RestChannel restChannel, RestRequest.Method requestMethod) {
+  private void handleException(
+      Exception e, RestChannel restChannel, RestRequest.Method requestMethod) {
     if (e instanceof OpenSearchException) {
       OpenSearchException exception = (OpenSearchException) e;
       reportError(restChannel, exception, exception.status());

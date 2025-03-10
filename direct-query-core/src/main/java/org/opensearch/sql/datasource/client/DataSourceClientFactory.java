@@ -5,14 +5,14 @@
 
 package org.opensearch.sql.datasource.client;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import org.opensearch.sql.datasources.auth.AuthenticationType;
+import okhttp3.OkHttpClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.inject.Inject;
@@ -25,21 +25,11 @@ import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
+import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-
-import lombok.RequiredArgsConstructor;
-
-import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
-import okhttp3.OkHttpClient;
-import org.opensearch.sql.opensearch.security.SecurityAccess;
-
-/**
- * Factory for creating data source clients based on the data source type.
- */
+/** Factory for creating data source clients based on the data source type. */
 public class DataSourceClientFactory {
 
   public static final String URI = "prometheus.uri";
@@ -56,8 +46,8 @@ public class DataSourceClientFactory {
   private final DataSourceService dataSourceService;
 
   @Inject
-  public DataSourceClientFactory(DataSourceService dataSourceService,
-                                org.opensearch.sql.common.setting.Settings settings) {
+  public DataSourceClientFactory(
+      DataSourceService dataSourceService, org.opensearch.sql.common.setting.Settings settings) {
     this.settings = (org.opensearch.sql.opensearch.setting.OpenSearchSettings) settings;
     this.dataSourceService = dataSourceService;
   }
@@ -86,15 +76,17 @@ public class DataSourceClientFactory {
         throw e;
       }
       LOG.error("Failed to create client for data source: " + dataSourceName, e);
-      throw new DataSourceClientException("Failed to create client for data source: " + dataSourceName, e);
+      throw new DataSourceClientException(
+          "Failed to create client for data source: " + dataSourceName, e);
     }
   }
 
-  private Object createClientForType(String dataSourceType, DataSourceMetadata metadata) throws DataSourceClientException {
+  private Object createClientForType(String dataSourceType, DataSourceMetadata metadata)
+      throws DataSourceClientException {
     switch (dataSourceType) {
       case "PROMETHEUS":
         return createPrometheusClient(metadata);
-      // Add cases for other data source types as needed
+        // Add cases for other data source types as needed
       default:
         throw new DataSourceClientException("Unsupported data source type: " + dataSourceType);
     }
@@ -117,34 +109,35 @@ public class DataSourceClientFactory {
   }
 
   private OkHttpClient getHttpClient(Map<String, String> config) {
-    return SecurityAccess.doPrivileged(() -> {
-        OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
-        okHttpClient.callTimeout(1, TimeUnit.MINUTES);
-        okHttpClient.connectTimeout(30, TimeUnit.SECONDS);
-        okHttpClient.followRedirects(false);
-        okHttpClient.addInterceptor(
-            new URIValidatorInterceptor(
-                settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST)));
-        if (config.get(AUTH_TYPE) != null) {
+    return SecurityAccess.doPrivileged(
+        () -> {
+          OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
+          okHttpClient.callTimeout(1, TimeUnit.MINUTES);
+          okHttpClient.connectTimeout(30, TimeUnit.SECONDS);
+          okHttpClient.followRedirects(false);
+          okHttpClient.addInterceptor(
+              new URIValidatorInterceptor(
+                  settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST)));
+          if (config.get(AUTH_TYPE) != null) {
             AuthenticationType authenticationType = AuthenticationType.get(config.get(AUTH_TYPE));
             if (AuthenticationType.BASICAUTH.equals(authenticationType)) {
-                okHttpClient.addInterceptor(
-                    new BasicAuthenticationInterceptor(config.get(USERNAME), config.get(PASSWORD)));
+              okHttpClient.addInterceptor(
+                  new BasicAuthenticationInterceptor(config.get(USERNAME), config.get(PASSWORD)));
             } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
-                okHttpClient.addInterceptor(
-                    new AwsSigningInterceptor(
-                        new AWSStaticCredentialsProvider(
-                            new BasicAWSCredentials(config.get(ACCESS_KEY), config.get(SECRET_KEY))),
-                        config.get(REGION),
-                        "aps"));
+              okHttpClient.addInterceptor(
+                  new AwsSigningInterceptor(
+                      new AWSStaticCredentialsProvider(
+                          new BasicAWSCredentials(config.get(ACCESS_KEY), config.get(SECRET_KEY))),
+                      config.get(REGION),
+                      "aps"));
             } else {
-                throw new IllegalArgumentException(
-                    String.format(
-                        "AUTH Type : %s is not supported with Prometheus Connector",
-                        config.get(AUTH_TYPE)));
+              throw new IllegalArgumentException(
+                  String.format(
+                      "AUTH Type : %s is not supported with Prometheus Connector",
+                      config.get(AUTH_TYPE)));
             }
-        }
-        return okHttpClient.build();
-    });
+          }
+          return okHttpClient.build();
+        });
   }
 }

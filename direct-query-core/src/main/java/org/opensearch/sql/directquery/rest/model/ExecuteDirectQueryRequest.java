@@ -15,20 +15,19 @@ import org.opensearch.sql.spark.rest.model.LangType;
 @NoArgsConstructor
 public class ExecuteDirectQueryRequest {
   // Required fields
-  private String dataSources;     // Required: From URI path parameter or request body
-  private String query;          // Required: String for Prometheus, object for CloudWatch
+  private String dataSources; // Required: From URI path parameter or request body
+  private String query; // Required: String for Prometheus, object for CloudWatch
   private LangType language; // Required: SQL, PPL, or PROMQL
-  private String sourceVersion;  // Required: API version
+  private String sourceVersion; // Required: API version
 
   // Optional fields
-  private Integer maxResults;    // Optional: limit for Prometheus, maxDataPoints for CW
-  private Integer timeout;       // Optional: number of seconds
+  private Integer maxResults; // Optional: limit for Prometheus, maxDataPoints for CW
+  private Integer timeout; // Optional: number of seconds
   private DataSourceOptions options; // Optional: Source specific arguments
-  private String sessionId;      // For session management
+  private String sessionId; // For session management
 
   /**
-   * Helper method to get PrometheusOptions.
-   * If options is already PrometheusOptions, returns it.
+   * Helper method to get PrometheusOptions. If options is already PrometheusOptions, returns it.
    * Otherwise, returns a new empty PrometheusOptions.
    *
    * @return PrometheusOptions object
