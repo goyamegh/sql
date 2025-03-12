@@ -5,18 +5,6 @@
 
 package org.opensearch.sql.prometheus.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,12 +21,27 @@ import org.opensearch.sql.prometheus.model.MetricMetadata;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
 @RunWith(MockitoJUnitRunner.class)
 public class PrometheusQueryHandlerTest {
 
   private PrometheusQueryHandler handler;
 
-  @Mock private PrometheusClient prometheusClient;
+  @Mock
+  private PrometheusClient prometheusClient;
 
   @Before
   public void setUp() {
@@ -79,7 +82,7 @@ public class PrometheusQueryHandlerTest {
     JSONObject responseJson =
         new JSONObject("{\"status\":\"success\",\"data\":{\"resultType\":\"matrix\"}}");
     when(prometheusClient.queryRange(
-            eq("up"), eq(1609459200L), eq(1609545600L), eq("15s"), eq(100), eq(30)))
+        eq("up"), eq(1609459200L), eq(1609545600L), eq("15s"), eq(100), eq(30)))
         .thenReturn(responseJson);
 
     // Test
@@ -186,7 +189,7 @@ public class PrometheusQueryHandlerTest {
   }
 
   @Test
-  public void testExecuteQueryWithInvalidQueryType() throws IOException {
+  public void testExecuteQueryWithNullQueryType() throws IOException {
     // Setup
     ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
     request.setQuery("up");
@@ -312,14 +315,19 @@ public class PrometheusQueryHandlerTest {
   }
 
   @Test
-  public void testExecuteQueryWithNullQueryType() throws IOException {
+  public void testExecuteQueryWithPrometheusClientException() throws IOException {
     // Setup
     ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
     request.setQuery("up");
 
     PrometheusOptions options = new PrometheusOptions();
-    options.setQueryType(null); // Null query type
+    options.setQueryType(PrometheusQueryType.INSTANT);
+    options.setTime("1609459200"); // 2021-01-01
     request.setPrometheusOptions(options);
+
+    String errorMessage = "Prometheus server error";
+    when(prometheusClient.query(eq("up"), eq(1609459200L), eq(null), eq(null)))
+        .thenThrow(new org.opensearch.sql.prometheus.exception.PrometheusClientException(errorMessage));
 
     // Test
     String result = handler.executeQuery(prometheusClient, request);
@@ -328,6 +336,53 @@ public class PrometheusQueryHandlerTest {
     assertNotNull(result);
     JSONObject resultJson = new JSONObject(result);
     assertTrue(resultJson.has("error"));
-    assertEquals("Query type is required for Prometheus queries", resultJson.getString("error"));
+    assertEquals(errorMessage, resultJson.getString("error"));
+  }
+
+  @Test
+  public void testExecuteQueryWithIOException() throws IOException {
+    // Setup
+    ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
+    request.setQuery("up");
+
+    PrometheusOptions options = new PrometheusOptions();
+    options.setQueryType(PrometheusQueryType.INSTANT);
+    options.setTime("1609459200"); // 2021-01-01
+    request.setPrometheusOptions(options);
+
+    String errorMessage = "Network connection error";
+    when(prometheusClient.query(eq("up"), eq(1609459200L), eq(null), eq(null)))
+        .thenThrow(new IOException(errorMessage));
+
+    // Test
+    String result = handler.executeQuery(prometheusClient, request);
+
+    // Verify
+    assertNotNull(result);
+    JSONObject resultJson = new JSONObject(result);
+    assertTrue(resultJson.has("error"));
+    assertEquals(errorMessage, resultJson.getString("error"));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testGetResourcesWithNullResourceType() {
+    // Setup
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(null); // Null resource type
+
+    // Test - should throw exception
+    handler.getResources(prometheusClient, request);
+  }
+
+  @Test
+  public void testFromStringWithInvalidQueryType() {
+    // Test that fromString throws IllegalArgumentException for invalid query type
+    try {
+      PrometheusQueryType.fromString("invalid_type");
+      // If we get here, the test should fail
+      fail("Expected IllegalArgumentException was not thrown");
+    } catch (IllegalArgumentException e) {
+      assertEquals("Unknown query type: invalid_type", e.getMessage());
+    }
   }
 }
