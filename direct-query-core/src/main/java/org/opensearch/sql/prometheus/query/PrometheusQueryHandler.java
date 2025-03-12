@@ -46,48 +46,42 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
     return SecurityAccess.doPrivileged(
         () -> {
           try {
-            ExecuteDirectQueryRequest queryRequest = (ExecuteDirectQueryRequest) request;
-            PrometheusOptions options = queryRequest.getPrometheusOptions();
-
-            // Check if options is null or query type is null
-            if (options == null) {
-              return createErrorJson("Prometheus options are required for PROMQL queries");
-            }
-
-            if (options.getQueryType() == null) {
+            PrometheusOptions options = request.getPrometheusOptions();
+            PrometheusQueryType queryType = options.getQueryType();
+            if (queryType == null) {
               return createErrorJson("Query type is required for Prometheus queries");
             }
 
             String startTimeStr = options.getStart();
             String endTimeStr = options.getEnd();
-            Integer limit = queryRequest.getMaxResults();
-            Integer timeout = queryRequest.getTimeout();
+            Integer limit = request.getMaxResults();
+            Integer timeout = request.getTimeout();
 
-            if (options.getQueryType() == PrometheusQueryType.RANGE
+            if (queryType == PrometheusQueryType.RANGE
                 && (startTimeStr == null || endTimeStr == null)) {
               return createErrorJson("Start and end times are required for Prometheus queries");
-            } else if (options.getQueryType() == PrometheusQueryType.INSTANT
+            } else if (queryType == PrometheusQueryType.INSTANT
                 && options.getTime() == null) {
               return createErrorJson("Time is required for instant Prometheus queries");
             }
 
-            if (options.getQueryType() == PrometheusQueryType.RANGE) {
+            if (queryType == PrometheusQueryType.RANGE) {
               JSONObject metricData =
                   client.queryRange(
-                      queryRequest.getQuery(),
+                      request.getQuery(),
                       Long.parseLong(startTimeStr),
                       Long.parseLong(endTimeStr),
                       options.getStep(),
                       limit,
                       timeout);
               return metricData.toString();
-            } else if (options.getQueryType() == PrometheusQueryType.INSTANT) {
+            } else if (queryType == PrometheusQueryType.INSTANT) {
               JSONObject metricData =
                   client.query(
-                      queryRequest.getQuery(), Long.parseLong(options.getTime()), limit, timeout);
+                      request.getQuery(), Long.parseLong(options.getTime()), limit, timeout);
               return metricData.toString();
             }
-            return createErrorJson("Invalid query type: " + options.getQueryType().toString());
+            return createErrorJson("Invalid query type: " + queryType.toString());
           } catch (NumberFormatException e) {
             return createErrorJson("Invalid time format: " + e.getMessage());
           } catch (org.opensearch.sql.prometheus.exception.PrometheusClientException e) {

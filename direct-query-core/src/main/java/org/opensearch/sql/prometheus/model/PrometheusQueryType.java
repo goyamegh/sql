@@ -5,7 +5,10 @@
 
 package org.opensearch.sql.prometheus.model;
 
+import lombok.Getter;
+
 /** Enum representing the types of Prometheus queries. */
+@Getter
 public enum PrometheusQueryType {
   INSTANT("instant"),
   RANGE("range");
@@ -14,10 +17,6 @@ public enum PrometheusQueryType {
 
   PrometheusQueryType(String value) {
     this.value = value;
-  }
-
-  public String getValue() {
-    return value;
   }
 
   public static PrometheusQueryType fromString(String text) {
