@@ -171,7 +171,7 @@ public class DirectQueryExecutorServiceImplTest {
     String resourceType = "LABELS";
 
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
-    request.setDataSources(dataSource);
+    request.setDataSource(dataSource);
     request.setResourceType(resourceType);
 
     when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
@@ -206,7 +206,7 @@ public class DirectQueryExecutorServiceImplTest {
     String resourceType = "LABELS";
 
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
-    request.setDataSources(dataSource);
+    request.setDataSource(dataSource);
     request.setResourceType(resourceType);
 
     when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
@@ -228,7 +228,7 @@ public class DirectQueryExecutorServiceImplTest {
     String resourceType = "LABELS";
 
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
-    request.setDataSources(dataSource);
+    request.setDataSource(dataSource);
     request.setResourceType(resourceType);
 
     when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);

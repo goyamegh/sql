@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class GetDirectQueryResourcesRequest {
-  private String dataSources;
+  private String dataSource;
   private String resourceType;
   private String resourceName;
 
