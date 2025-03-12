@@ -5,15 +5,6 @@
 
 package org.opensearch.sql.prometheus.client;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
 import okhttp3.OkHttpClient;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -23,6 +14,18 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.prometheus.exception.PrometheusClientException;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PrometheusClientImplTest {
 
@@ -47,6 +50,27 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testQueryRange() throws IOException {
+    // Setup
+    String successResponse =
+        "{\"status\":\"success\",\"data\":{\"resultType\":\"matrix\",\"result\":[{\"metric\":{\"__name__\":\"up\",\"job\":\"prometheus\",\"instance\":\"localhost:9090\"},\"values\":[[1435781430.781,\"1\"],[1435781445.781,\"1\"],[1435781460.781,\"1\"]]}]}}";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    JSONObject result = client.queryRange("up", 1435781430L, 1435781460L, "15s", 100, 30);
+
+    // Verify
+    assertNotNull(result);
+    assertEquals("success", result.getString("status"));
+    JSONObject data = result.getJSONObject("data");
+    assertEquals("matrix", data.getString("resultType"));
+    JSONArray resultArray = data.getJSONArray("result");
+    assertEquals(1, resultArray.length());
+    JSONObject metric = resultArray.getJSONObject(0).getJSONObject("metric");
+    assertEquals("up", metric.getString("__name__"));
+  }
+
+  @Test
+  public void testQueryRangeSimpleOverload() throws IOException {
     // Setup
     String successResponse =
         "{\"status\":\"success\",\"data\":{\"resultType\":\"matrix\",\"result\":[{\"metric\":{\"__name__\":\"up\",\"job\":\"prometheus\",\"instance\":\"localhost:9090\"},\"values\":[[1435781430.781,\"1\"],[1435781445.781,\"1\"],[1435781460.781,\"1\"]]}]}}";
@@ -152,6 +176,24 @@ public class PrometheusClientImplTest {
   }
 
   @Test
+  public void testGetLabelsByMetricName() throws IOException {
+    // Setup
+    String successResponse = "{\"status\":\"success\",\"data\":[\"job\",\"instance\",\"__name__\"]}";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    List<String> labels = client.getLabels("http_requests_total");
+
+    // Verify
+    assertNotNull(labels);
+    assertEquals(2, labels.size());
+    assertTrue(labels.contains("job"));
+    assertTrue(labels.contains("instance"));
+    // __name__ should be filtered out by the implementation
+    assertFalse(labels.contains("__name__"));
+  }
+
+  @Test
   public void testGetLabel() throws IOException {
     // Setup
     String successResponse = "{\"status\":\"success\",\"data\":[\"prometheus\",\"node-exporter\"]}";
@@ -184,5 +226,91 @@ public class PrometheusClientImplTest {
     JSONObject exemplarData = result.getJSONObject(0);
     assertTrue(exemplarData.has("seriesLabels"));
     assertTrue(exemplarData.has("exemplars"));
+  }
+
+  @Test
+  public void testGetAllMetricsWithParams() throws IOException {
+    // Setup
+    String successResponse =
+        "{\"status\":\"success\",\"data\":{\"go_gc_duration_seconds\":[{\"type\":\"histogram\",\"help\":\"A summary of the pause duration of garbage collection cycles.\",\"unit\":\"\"}]}}";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    HashMap<String, String> params = new HashMap<>();
+    params.put("limit", "100");
+    var result = client.getAllMetrics(params);
+
+    // Verify
+    assertNotNull(result);
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("go_gc_duration_seconds"));
+    assertEquals(1, result.get("go_gc_duration_seconds").size());
+    assertEquals("histogram", result.get("go_gc_duration_seconds").getFirst().getType());
+    assertEquals("A summary of the pause duration of garbage collection cycles.",
+        result.get("go_gc_duration_seconds").getFirst().getHelp());
+  }
+
+  @Test
+  public void testGetAllMetrics() throws IOException {
+    // Setup
+    String successResponse =
+        "{\"status\":\"success\",\"data\":{\"http_requests_total\":[{\"type\":\"counter\",\"help\":\"Total number of HTTP requests\",\"unit\":\"requests\"}]}}";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    var result = client.getAllMetrics();
+
+    // Verify
+    assertNotNull(result);
+    assertEquals(1, result.size());
+    assertTrue(result.containsKey("http_requests_total"));
+    assertEquals(1, result.get("http_requests_total").size());
+    assertEquals("counter", result.get("http_requests_total").getFirst().getType());
+    assertEquals("Total number of HTTP requests", result.get("http_requests_total").getFirst().getHelp());
+    assertEquals("requests", result.get("http_requests_total").getFirst().getUnit());
+  }
+
+  @Test
+  public void testGetSeries() throws IOException {
+    // Setup
+    String successResponse =
+        "{\"status\":\"success\",\"data\":[{\"__name__\":\"up\",\"job\":\"prometheus\",\"instance\":\"localhost:9090\"},{\"__name__\":\"up\",\"job\":\"node\",\"instance\":\"localhost:9100\"}]}";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    HashMap<String, String> params = new HashMap<>();
+    params.put("match[]", "up");
+    var result = client.getSeries(params);
+
+    // Verify
+    assertNotNull(result);
+    assertEquals(2, result.size());
+
+    // First series
+    assertEquals("up", result.getFirst().get("__name__"));
+    assertEquals("prometheus", result.getFirst().get("job"));
+    assertEquals("localhost:9090", result.getFirst().get("instance"));
+
+    // Second series
+    assertEquals("up", result.get(1).get("__name__"));
+    assertEquals("node", result.get(1).get("job"));
+    assertEquals("localhost:9100", result.get(1).get("instance"));
+  }
+
+  @Test
+  public void testReadResponseWithRequestId() throws Exception {
+    // Setup
+    String successResponse = "{\"status\":\"success\",\"data\":[\"job\",\"instance\"]}";
+    MockResponse mockResponse = new MockResponse()
+        .setBody(successResponse)
+        .addHeader("X-Request-ID", "test-request-id");
+    mockWebServer.enqueue(mockResponse);
+
+    // Test - the request ID will be logged but we can verify the method completes successfully
+    List<String> labels = client.getLabels(new HashMap<>());
+
+    // Verify the method executed successfully
+    assertNotNull(labels);
+    assertEquals(2, labels.size());
   }
 }
