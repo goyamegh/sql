@@ -10,6 +10,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.MockSettings;
 import org.mockito.Mockito;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
@@ -97,6 +98,59 @@ public class RestDirectQueryResourcesManagementActionTest {
   @Test
   public void testGetName() {
     Assertions.assertEquals("direct_query_resources_actions", unit.getName());
+  }
+
+  @Test
+  @SneakyThrows
+  public void testSuccessfulResponse() {
+    // Setup
+    setDataSourcesEnabled(true);
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
+    Mockito.when(request.param("dataSource")).thenReturn("testDataSource");
+    Mockito.when(request.param("resourceType")).thenReturn("testResourceType");
+    Mockito.when(request.consumedParams()).thenReturn(java.util.Collections.emptyList());
+    Mockito.when(request.params()).thenReturn(java.util.Collections.emptyMap());
+
+    // Capture the ActionListener passed to execute()
+    ArgumentCaptor<org.opensearch.core.action.ActionListener> listenerCaptor =
+        ArgumentCaptor.forClass(org.opensearch.core.action.ActionListener.class);
+
+    // Mock the threadPool.schedule to immediately execute the Runnable
+    Mockito.doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      return null;
+    }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+
+    // Mock the nodeClient.execute to capture the listener
+    Mockito.doAnswer(invocation -> {
+      ActionListener listener = invocation.getArgument(2);
+      return null;
+    }).when(nodeClient).execute(
+        Mockito.any(),
+        Mockito.any(),
+        listenerCaptor.capture());
+
+    // Execute the request
+    unit.handleRequest(request, channel, nodeClient);
+
+    // Create a mock response
+    String successResponse = "{\"result\":\"success\"}";
+    org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse response =
+        new org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse(successResponse);
+
+    // Trigger the onResponse method with the captured listener
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onResponse(response);
+
+    // Verify the response
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(200, capturedResponse.status().getStatus());
+    Assertions.assertEquals("application/json; charset=UTF-8", capturedResponse.contentType());
+    Assertions.assertEquals(successResponse, capturedResponse.content().utf8ToString());
   }
 
   private void setDataSourcesEnabled(boolean value) {
