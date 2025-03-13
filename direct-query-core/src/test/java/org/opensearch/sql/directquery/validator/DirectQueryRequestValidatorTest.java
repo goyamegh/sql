@@ -94,6 +94,16 @@ public class DirectQueryRequestValidatorTest {
   }
 
   @Test
+  public void testValidateRequestWithSqlLanguage() {
+    ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
+    request.setDataSources("prometheus");
+    request.setLanguage(LangType.SQL);
+    request.setQuery("select 1");
+
+    assertDoesNotThrow(() -> DirectQueryRequestValidator.validateRequest(request));
+  }
+
+  @Test
   public void testValidatePromQLRequestWithoutOptions() {
     ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
     request.setDataSources("prometheus");
@@ -127,6 +137,26 @@ public class DirectQueryRequestValidatorTest {
   }
 
   @Test
+  public void testValidatePromQLRangeQueryMissingEnd() {
+    ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
+    request.setDataSources("prometheus");
+    request.setQuery("up");
+    request.setLanguage(LangType.PROMQL);
+
+    PrometheusOptions options = new PrometheusOptions();
+    options.setQueryType(PrometheusQueryType.RANGE);
+    options.setStep("15s");
+    options.setStart("now");
+    request.setPrometheusOptions(options);
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> DirectQueryRequestValidator.validateRequest(request));
+    assertEquals("Start and end times are required for range queries", exception.getMessage());
+  }
+
+  @Test
   public void testValidatePromQLRangeQueryMissingStep() {
     ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
     request.setDataSources("prometheus");
@@ -138,6 +168,27 @@ public class DirectQueryRequestValidatorTest {
     options.setStart("1609459200");
     options.setEnd("1609545600");
     // Missing step
+    request.setPrometheusOptions(options);
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> DirectQueryRequestValidator.validateRequest(request));
+    assertEquals("Step parameter is required for range queries", exception.getMessage());
+  }
+
+  @Test
+  public void testValidatePromQLRangeQueryEmptyStep() {
+    ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
+    request.setDataSources("prometheus");
+    request.setQuery("up");
+    request.setLanguage(LangType.PROMQL);
+
+    PrometheusOptions options = new PrometheusOptions();
+    options.setQueryType(PrometheusQueryType.RANGE);
+    options.setStart("1609459200");
+    options.setEnd("1609545600");
+    options.setStep("");
     request.setPrometheusOptions(options);
 
     IllegalArgumentException exception =

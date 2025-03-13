@@ -11,6 +11,7 @@ import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 public class DirectQueryRequestValidator {
+  private DirectQueryRequestValidator() {}
 
   public static void validateRequest(ExecuteDirectQueryRequest request) {
     if (request == null) {
@@ -31,7 +32,7 @@ public class DirectQueryRequestValidator {
 
     if (request.getLanguage() == LangType.PROMQL) {
       PrometheusOptions prometheusOptions = request.getPrometheusOptions();
-      if (prometheusOptions == null || prometheusOptions.getQueryType() == null) {
+      if (prometheusOptions.getQueryType() == null) {
         throw new IllegalArgumentException("Prometheus options are required for PROMQL queries");
       }
 
@@ -68,7 +69,7 @@ public class DirectQueryRequestValidator {
 
         // Validate time format
         try {
-          Long.parseLong(prometheusOptions.getTime().toString());
+          Long.parseLong(prometheusOptions.getTime());
         } catch (NumberFormatException e) {
           throw new IllegalArgumentException(
               "Invalid time format: time must be a numeric timestamp");

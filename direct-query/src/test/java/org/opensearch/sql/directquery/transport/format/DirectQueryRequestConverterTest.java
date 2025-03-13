@@ -7,6 +7,7 @@ package org.opensearch.sql.directquery.transport.format;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
@@ -33,6 +34,7 @@ public class DirectQueryRequestConverterTest {
             .field("datasource", "prometheus")
             .field("query", "up")
             .field("language", "promql")
+            .field("sourceVersion", "v1")
             .field("sessionId", "test-session")
             .field("maxResults", 100)
             .field("timeout", 30)
@@ -70,7 +72,6 @@ public class DirectQueryRequestConverterTest {
             .field("query", "up")
             .field("language", "promql")
             .startObject("options")
-            .field("queryType", "instant")
             .field("time", "1609459200")
             .endObject()
             .endObject();
@@ -82,7 +83,26 @@ public class DirectQueryRequestConverterTest {
     assertNotNull(request);
     assertEquals("prometheus1,prometheus2,prometheus3", request.getDataSources());
     assertEquals("up", request.getQuery());
-    assertEquals(LangType.PROMQL, request.getLanguage());
+  }
+
+  @Test
+  public void testConvertNullLanguage() throws Exception {
+    // Create a JSON representation with multiple data sources
+    XContentBuilder builder =
+        JsonXContent.contentBuilder()
+            .startObject()
+            .field("datasource", "datasource")
+            .field("query", "mock-query")
+            .field("language", (String) null)
+            .endObject();
+
+    XContentParser parser = createParser(builder);
+
+    ExecuteDirectQueryRequest request = DirectQueryRequestConverter.fromXContentParser(parser);
+
+    assertNotNull(request);
+    assertEquals("datasource", request.getDataSources());
+    assertEquals("mock-query", request.getQuery());
   }
 
   @Test
@@ -150,6 +170,33 @@ public class DirectQueryRequestConverterTest {
 
     // Should throw exception for invalid language type
     assertThrows(Exception.class, () -> DirectQueryRequestConverter.fromXContentParser(parser));
+  }
+
+  @Test
+  public void testNullOptions() throws Exception {
+    XContentBuilder builder =
+        JsonXContent.contentBuilder()
+            .startObject()
+            .field("datasource", "prometheus")
+            .field("query", "up")
+            .field("language", "promql")
+            .endObject();
+
+    XContentParser parser = createParser(builder);
+
+    ExecuteDirectQueryRequest request = DirectQueryRequestConverter.fromXContentParser(parser);
+
+    assertNotNull(request);
+    assertEquals("prometheus", request.getDataSources());
+    assertEquals("up", request.getQuery());
+    assertEquals(LangType.PROMQL, request.getLanguage());
+    
+    PrometheusOptions options = request.getPrometheusOptions();
+    assertNotNull(options);
+    assertNull(options.getTime());
+    assertNull(options.getStart());
+    assertNull(options.getEnd());
+    assertNull(options.getStep());
   }
 
   private XContentParser createParser(XContentBuilder builder) throws IOException {

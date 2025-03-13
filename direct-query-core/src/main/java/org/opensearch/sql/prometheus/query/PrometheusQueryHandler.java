@@ -64,23 +64,29 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
               return createErrorJson("Time is required for instant Prometheus queries");
             }
 
-            if (queryType == PrometheusQueryType.RANGE) {
-              JSONObject metricData =
-                  client.queryRange(
-                      request.getQuery(),
-                      Long.parseLong(startTimeStr),
-                      Long.parseLong(endTimeStr),
-                      options.getStep(),
-                      limit,
-                      timeout);
-              return metricData.toString();
-            } else if (queryType == PrometheusQueryType.INSTANT) {
-              JSONObject metricData =
-                  client.query(
-                      request.getQuery(), Long.parseLong(options.getTime()), limit, timeout);
-              return metricData.toString();
-            }
-            return createErrorJson("Invalid query type: " + queryType.toString());
+            String result = switch (queryType) {
+              case RANGE -> {
+                JSONObject metricData = client.queryRange(
+                    request.getQuery(),
+                    Long.parseLong(startTimeStr),
+                    Long.parseLong(endTimeStr),
+                    options.getStep(),
+                    limit,
+                    timeout
+                );
+                yield metricData.toString();
+              }
+              case INSTANT -> {
+                JSONObject metricData = client.query(
+                    request.getQuery(),
+                    Long.parseLong(options.getTime()),
+                    limit,
+                    timeout
+                );
+                yield metricData.toString();
+              }
+            };
+            return result;
           } catch (NumberFormatException e) {
             return createErrorJson("Invalid time format: " + e.getMessage());
           } catch (org.opensearch.sql.prometheus.exception.PrometheusClientException e) {

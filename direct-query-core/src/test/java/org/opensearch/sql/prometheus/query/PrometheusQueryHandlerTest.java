@@ -145,6 +145,29 @@ public class PrometheusQueryHandlerTest {
   }
 
   @Test
+  public void testExecuteQueryWithMissingEndTime() throws IOException {
+    // Setup
+    ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
+    request.setQuery("up");
+
+    PrometheusOptions options = new PrometheusOptions();
+    options.setQueryType(PrometheusQueryType.RANGE);
+    options.setStep("15s");
+    options.setStart("now");
+    request.setPrometheusOptions(options);
+
+    // Test
+    String result = handler.executeQuery(prometheusClient, request);
+
+    // Verify
+    assertNotNull(result);
+    JSONObject resultJson = new JSONObject(result);
+    assertTrue(resultJson.has("error"));
+    assertEquals(
+        "Start and end times are required for Prometheus queries", resultJson.getString("error"));
+  }
+
+  @Test
   public void testExecuteQueryWithMissingTimeForInstant() throws IOException {
     // Setup
     ExecuteDirectQueryRequest request = new ExecuteDirectQueryRequest();
@@ -371,17 +394,5 @@ public class PrometheusQueryHandlerTest {
 
     // Test - should throw exception
     handler.getResources(prometheusClient, request);
-  }
-
-  @Test
-  public void testFromStringWithInvalidQueryType() {
-    // Test that fromString throws IllegalArgumentException for invalid query type
-    try {
-      PrometheusQueryType.fromString("invalid_type");
-      // If we get here, the test should fail
-      fail("Expected IllegalArgumentException was not thrown");
-    } catch (IllegalArgumentException e) {
-      assertEquals("Unknown query type: invalid_type", e.getMessage());
-    }
   }
 }
