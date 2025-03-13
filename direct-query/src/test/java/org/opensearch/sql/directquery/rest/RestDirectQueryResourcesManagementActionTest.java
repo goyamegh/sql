@@ -6,6 +6,8 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.util.List;
+import java.util.Locale;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.MockSettings;
@@ -98,6 +100,35 @@ public class RestDirectQueryResourcesManagementActionTest {
   @Test
   public void testGetName() {
     Assertions.assertEquals("direct_query_resources_actions", unit.getName());
+  }
+
+  @Test
+  public void testRoutes() {
+    List<RestDirectQueryResourcesManagementAction.Route> routes = unit.routes();
+    Assertions.assertNotNull(routes);
+    Assertions.assertEquals(2, routes.size());
+
+    // Verify the routes match what we expect
+    boolean foundResourceTypeRoute = false;
+    boolean foundResourceValuesRoute = false;
+    
+    for (RestDirectQueryResourcesManagementAction.Route route : routes) {
+      if (RestRequest.Method.GET.equals(route.getMethod())
+          && route.getPath().equals(String.format(
+              Locale.ROOT, "%s/api/v1/{resourceType}", 
+              RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
+        foundResourceTypeRoute = true;
+      }
+      if (RestRequest.Method.GET.equals(route.getMethod())
+          && route.getPath().equals(String.format(
+              Locale.ROOT, "%s/api/v1/{resourceType}/{resourceName}/values", 
+              RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
+        foundResourceValuesRoute = true;
+      }
+    }
+    
+    Assertions.assertTrue(foundResourceTypeRoute, "Resource type route not found");
+    Assertions.assertTrue(foundResourceValuesRoute, "Resource values route not found");
   }
 
   @Test
