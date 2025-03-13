@@ -12,7 +12,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.MockSettings;
 import org.mockito.Mockito;
+import org.opensearch.OpenSearchException;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
@@ -77,7 +79,6 @@ public class RestDirectQueryResourcesManagementActionTest {
     Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
 
     unit.handleRequest(request, channel, nodeClient);
-    // Verify that nodeClient.execute was called, which happens inside the Scheduler
     Mockito.verify(threadPool, Mockito.times(1))
         .schedule(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any());
     Mockito.verifyNoInteractions(channel);
@@ -88,7 +89,6 @@ public class RestDirectQueryResourcesManagementActionTest {
   public void testUnsupportedMethod() {
     setDataSourcesEnabled(true);
     Mockito.when(request.method()).thenReturn(RestRequest.Method.PUT);
-    // Mock consumedParams to return a modifiable empty list
     Mockito.when(request.consumedParams()).thenReturn(new java.util.ArrayList<>());
     unit.handleRequest(request, channel, nodeClient);
 
@@ -108,7 +108,6 @@ public class RestDirectQueryResourcesManagementActionTest {
     Assertions.assertNotNull(routes);
     Assertions.assertEquals(2, routes.size());
 
-    // Verify the routes match what we expect
     boolean foundResourceTypeRoute = false;
     boolean foundResourceValuesRoute = false;
     
@@ -134,7 +133,6 @@ public class RestDirectQueryResourcesManagementActionTest {
   @Test
   @SneakyThrows
   public void testSuccessfulResponse() {
-    // Setup
     setDataSourcesEnabled(true);
     Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
     Mockito.when(request.param("dataSource")).thenReturn("testDataSource");
@@ -142,18 +140,15 @@ public class RestDirectQueryResourcesManagementActionTest {
     Mockito.when(request.consumedParams()).thenReturn(java.util.Collections.emptyList());
     Mockito.when(request.params()).thenReturn(java.util.Collections.emptyMap());
 
-    // Capture the ActionListener passed to execute()
     ArgumentCaptor<org.opensearch.core.action.ActionListener> listenerCaptor =
         ArgumentCaptor.forClass(org.opensearch.core.action.ActionListener.class);
 
-    // Mock the threadPool.schedule to immediately execute the Runnable
     Mockito.doAnswer(invocation -> {
       Runnable runnable = invocation.getArgument(0);
       runnable.run();
       return null;
     }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
 
-    // Mock the nodeClient.execute to capture the listener
     Mockito.doAnswer(invocation -> {
       ActionListener listener = invocation.getArgument(2);
       return null;
@@ -162,19 +157,15 @@ public class RestDirectQueryResourcesManagementActionTest {
         Mockito.any(),
         listenerCaptor.capture());
 
-    // Execute the request
     unit.handleRequest(request, channel, nodeClient);
 
-    // Create a mock response
     String successResponse = "{\"result\":\"success\"}";
     org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse response =
         new org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse(successResponse);
 
-    // Trigger the onResponse method with the captured listener
     ActionListener listener = listenerCaptor.getValue();
     listener.onResponse(response);
 
-    // Verify the response
     ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
     Mockito.verify(channel).sendResponse(responseCaptor.capture());
 
@@ -182,6 +173,156 @@ public class RestDirectQueryResourcesManagementActionTest {
     Assertions.assertEquals(200, capturedResponse.status().getStatus());
     Assertions.assertEquals("application/json; charset=UTF-8", capturedResponse.contentType());
     Assertions.assertEquals(successResponse, capturedResponse.content().utf8ToString());
+  }
+
+  @Test
+  @SneakyThrows
+  public void testBadRequestResponse() {
+    setDataSourcesEnabled(true);
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
+    Mockito.when(request.param("dataSource")).thenReturn("testDataSource");
+    Mockito.when(request.param("resourceType")).thenReturn("testResourceType");
+    Mockito.when(request.consumedParams()).thenReturn(java.util.Collections.emptyList());
+    Mockito.when(request.params()).thenReturn(java.util.Collections.emptyMap());
+
+    ArgumentCaptor<org.opensearch.core.action.ActionListener> listenerCaptor =
+        ArgumentCaptor.forClass(org.opensearch.core.action.ActionListener.class);
+
+    Mockito.doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      return null;
+    }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+
+    Mockito.doAnswer(invocation -> {
+      ActionListener listener = invocation.getArgument(2);
+      return null;
+    }).when(nodeClient).execute(
+        Mockito.any(),
+        Mockito.any(),
+        listenerCaptor.capture());
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    IllegalArgumentException clientError = new IllegalArgumentException("Invalid request parameter");
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onFailure(clientError);
+
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(400, capturedResponse.status().getStatus());
+    
+    JsonObject actualResponseJson =
+        new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
+    Assertions.assertEquals(400, actualResponseJson.get("status").getAsInt());
+    Assertions.assertTrue(actualResponseJson.has("error"));
+    Assertions.assertEquals("IllegalArgumentException", 
+        actualResponseJson.getAsJsonObject("error").get("type").getAsString());
+    Assertions.assertEquals("Invalid Request", 
+        actualResponseJson.getAsJsonObject("error").get("reason").getAsString());
+  }
+
+  @Test
+  @SneakyThrows
+  public void testInternalServerErrorResponse() {
+    setDataSourcesEnabled(true);
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
+    Mockito.when(request.param("dataSource")).thenReturn("testDataSource");
+    Mockito.when(request.param("resourceType")).thenReturn("testResourceType");
+    Mockito.when(request.consumedParams()).thenReturn(java.util.Collections.emptyList());
+    Mockito.when(request.params()).thenReturn(java.util.Collections.emptyMap());
+
+    ArgumentCaptor<org.opensearch.core.action.ActionListener> listenerCaptor =
+        ArgumentCaptor.forClass(org.opensearch.core.action.ActionListener.class);
+
+    Mockito.doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      return null;
+    }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+
+    Mockito.doAnswer(invocation -> {
+      ActionListener listener = invocation.getArgument(2);
+      return null;
+    }).when(nodeClient).execute(
+        Mockito.any(),
+        Mockito.any(),
+        listenerCaptor.capture());
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    RuntimeException serverError = new RuntimeException("Internal server error");
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onFailure(serverError);
+
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(500, capturedResponse.status().getStatus());
+    
+    JsonObject actualResponseJson =
+        new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
+    Assertions.assertEquals(500, actualResponseJson.get("status").getAsInt());
+    Assertions.assertTrue(actualResponseJson.has("error"));
+    Assertions.assertEquals("RuntimeException", 
+        actualResponseJson.getAsJsonObject("error").get("type").getAsString());
+    Assertions.assertEquals("There was internal problem at backend", 
+        actualResponseJson.getAsJsonObject("error").get("reason").getAsString());
+  }
+
+  @Test
+  @SneakyThrows
+  public void testOpenSearchException() {
+    setDataSourcesEnabled(true);
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
+    Mockito.when(request.param("dataSource")).thenReturn("testDataSource");
+    Mockito.when(request.param("resourceType")).thenReturn("testResourceType");
+    Mockito.when(request.consumedParams()).thenReturn(java.util.Collections.emptyList());
+    Mockito.when(request.params()).thenReturn(java.util.Collections.emptyMap());
+
+    ArgumentCaptor<org.opensearch.core.action.ActionListener> listenerCaptor =
+        ArgumentCaptor.forClass(org.opensearch.core.action.ActionListener.class);
+
+    Mockito.doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      return null;
+    }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+
+    Mockito.doAnswer(invocation -> {
+      ActionListener listener = invocation.getArgument(2);
+      return null;
+    }).when(nodeClient).execute(
+        Mockito.any(),
+        Mockito.any(),
+        listenerCaptor.capture());
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    OpenSearchException opensearchError = new OpenSearchException("OpenSearch specific error");
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onFailure(opensearchError);
+
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(500, capturedResponse.status().getStatus());
+
+    JsonObject actualResponseJson =
+        new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
+    Assertions.assertEquals(500, actualResponseJson.get("status").getAsInt());
+    Assertions.assertTrue(actualResponseJson.has("error"));
+    Assertions.assertEquals("OpenSearchException",
+        actualResponseJson.getAsJsonObject("error").get("type").getAsString());
+    Assertions.assertEquals("OpenSearch specific error",
+        actualResponseJson.getAsJsonObject("error").get("details").getAsString());
   }
 
   private void setDataSourcesEnabled(boolean value) {
