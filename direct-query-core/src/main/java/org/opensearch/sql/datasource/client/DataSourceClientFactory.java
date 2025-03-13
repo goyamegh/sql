@@ -7,11 +7,6 @@ package org.opensearch.sql.datasource.client;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,7 +24,15 @@ import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
 
-/** Factory for creating data source clients based on the data source type. */
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Factory for creating data source clients based on the data source type.
+ */
 public class DataSourceClientFactory {
 
   public static final String URI = "prometheus.uri";
@@ -42,20 +45,19 @@ public class DataSourceClientFactory {
 
   private static final Logger LOG = LogManager.getLogger();
 
-  private final org.opensearch.sql.opensearch.setting.OpenSearchSettings settings;
+  private final Settings settings;
   private final DataSourceService dataSourceService;
 
   @Inject
-  public DataSourceClientFactory(
-      DataSourceService dataSourceService, org.opensearch.sql.common.setting.Settings settings) {
-    this.settings = (org.opensearch.sql.opensearch.setting.OpenSearchSettings) settings;
+  public DataSourceClientFactory(DataSourceService dataSourceService, Settings settings) {
+    this.settings = settings;
     this.dataSourceService = dataSourceService;
   }
 
   /**
    * Creates a client for the specified data source with appropriate type.
    *
-   * @param <T> The type of client to create
+   * @param <T>            The type of client to create
    * @param dataSourceName The name of the data source
    * @return The appropriate client for the data source type
    * @throws DataSourceClientException If client creation fails
@@ -86,7 +88,7 @@ public class DataSourceClientFactory {
     switch (dataSourceType) {
       case "PROMETHEUS":
         return createPrometheusClient(metadata);
-        // Add cases for other data source types as needed
+      // Add cases for other data source types as needed
       default:
         throw new DataSourceClientException("Unsupported data source type: " + dataSourceType);
     }

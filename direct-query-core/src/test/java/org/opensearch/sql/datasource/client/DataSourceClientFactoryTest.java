@@ -24,7 +24,6 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -32,7 +31,7 @@ public class DataSourceClientFactoryTest {
 
   @Mock private DataSourceService dataSourceService;
 
-  @Mock private OpenSearchSettings settings;
+  @Mock private Settings settings;
 
   private DataSourceClientFactory dataSourceClientFactory;
 
