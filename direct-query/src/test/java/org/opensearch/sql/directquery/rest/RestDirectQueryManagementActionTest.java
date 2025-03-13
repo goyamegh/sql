@@ -1,141 +1,346 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
 package org.opensearch.sql.directquery.rest;
 
-import static org.mockito.Mockito.when;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
+import org.mockito.MockSettings;
 import org.mockito.Mockito;
-import org.opensearch.core.common.bytes.BytesArray;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.http.HttpChannel;
-import org.opensearch.http.HttpRequest;
+import org.opensearch.OpenSearchException;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestHandler.Route;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestResponse;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
+import java.util.List;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
+
 public class RestDirectQueryManagementActionTest {
 
   private OpenSearchSettings settings;
-  private NodeClient nodeClient;
   private RestRequest request;
   private RestChannel channel;
+  private NodeClient nodeClient;
   private ThreadPool threadPool;
-  private RestDirectQueryManagementAction action;
-  private Map<String, String> params;
+  private RestDirectQueryManagementAction unit;
 
   @BeforeEach
   public void setup() {
-    settings = Mockito.mock(OpenSearchSettings.class);
-    channel = Mockito.mock(RestChannel.class);
-    nodeClient = Mockito.mock(NodeClient.class);
-    threadPool = Mockito.mock(ThreadPool.class);
+    // allow mocking final methods
+    MockSettings mockSettings = withSettings().mockMaker("mock-maker-inline");
+    settings = mock(OpenSearchSettings.class);
+    request = mock(RestRequest.class, mockSettings);
+    channel = mock(RestChannel.class);
+    nodeClient = mock(NodeClient.class, mockSettings);
+    threadPool = mock(ThreadPool.class);
 
-    mockRequest("/my/path?dataSources=prometheus");
+    Mockito.when(nodeClient.threadPool()).thenReturn(threadPool);
 
-    action = new RestDirectQueryManagementAction(settings);
+    unit = new RestDirectQueryManagementAction(settings);
   }
 
-  private void mockRequest(String path) {
-    // Set up your required mocks for HttpRequest and HttpChannel
-    NamedXContentRegistry xContentRegistry = NamedXContentRegistry.EMPTY;
-    HttpRequest httpRequest = Mockito.mock(HttpRequest.class);
-    HttpChannel httpChannel = Mockito.mock(HttpChannel.class);
+  @Test
+  @SneakyThrows
+  public void testWhenDataSourcesAreDisabled() {
+    setDataSourcesEnabled(false);
+    unit.handleRequest(request, channel, nodeClient);
+    Mockito.verifyNoInteractions(nodeClient);
+    ArgumentCaptor<RestResponse> response = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel, Mockito.times(1)).sendResponse(response.capture());
+    Assertions.assertEquals(400, response.getValue().status().getStatus());
+    JsonObject actualResponseJson =
+        new Gson().fromJson(response.getValue().content().utf8ToString(), JsonObject.class);
+    JsonObject expectedResponseJson = new JsonObject();
+    expectedResponseJson.addProperty("status", 400);
+    expectedResponseJson.add("error", new JsonObject());
+    expectedResponseJson.getAsJsonObject("error").addProperty("type", "IllegalAccessException");
+    expectedResponseJson.getAsJsonObject("error").addProperty("reason", "Invalid Request");
+    expectedResponseJson
+        .getAsJsonObject("error")
+        .addProperty("details", "plugins.query.datasources.enabled setting is false");
+    Assertions.assertEquals(expectedResponseJson, actualResponseJson);
+  }
 
-    // Stub basic behavior: uri and headers
-    Mockito.when(httpRequest.uri()).thenReturn(path);
-    Mockito.when(httpRequest.getHeaders()).thenReturn(new HashMap<>());
-    // Stub HTTP method
-    Mockito.when(httpRequest.method()).thenReturn(Method.POST);
+  @Test
+  @SneakyThrows
+  public void testWhenDataSourcesAreEnabled() {
+    setDataSourcesEnabled(true);
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.POST);
+    Mockito.when(request.param("dataSources")).thenReturn("testDataSource");
     String requestContent =
         "{\"query\":\"up\",\"language\":\"promql\",\"options\":{\"queryType\":\"instant\",\"time\":\"1609459200\"}}";
-    Mockito.when(httpRequest.content()).thenReturn(new BytesArray(requestContent));
+    Mockito.when(request.contentParser()).thenReturn(
+        new org.opensearch.common.xcontent.json.JsonXContentParser(
+            org.opensearch.core.xcontent.NamedXContentRegistry.EMPTY,
+            org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            new com.fasterxml.jackson.core.JsonFactory().createParser(requestContent)));
 
-    // Create a real instance via the factory method
-    RestRequest realRequest = RestRequest.request(xContentRegistry, httpRequest, httpChannel);
-
-    // Create a spy so that real methods (including param()) are invoked
-    request = Mockito.spy(realRequest);
+    unit.handleRequest(request, channel, nodeClient);
+    Mockito.verify(threadPool, Mockito.times(1))
+        .schedule(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any());
+    Mockito.verifyNoInteractions(channel);
   }
 
   @Test
   @SneakyThrows
+  public void testUnsupportedMethod() {
+    setDataSourcesEnabled(true);
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
+    Mockito.when(request.consumedParams()).thenReturn(new java.util.ArrayList<>());
+    unit.handleRequest(request, channel, nodeClient);
+
+    ArgumentCaptor<RestResponse> response = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel, Mockito.times(1)).sendResponse(response.capture());
+    Assertions.assertEquals(405, response.getValue().status().getStatus());
+  }
+
+  @Test
   public void testGetName() {
-    Assertions.assertEquals(RestDirectQueryManagementAction.DIRECT_QUERY_ACTIONS, action.getName());
+    Assertions.assertEquals("direct_query_actions", unit.getName());
+  }
+
+  @Test
+  public void testRoutes() {
+    List<RestDirectQueryManagementAction.Route> routes = unit.routes();
+    Assertions.assertNotNull(routes);
+    Assertions.assertEquals(1, routes.size());
+
+    RestDirectQueryManagementAction.Route route = routes.get(0);
+    Assertions.assertEquals(RestRequest.Method.POST, route.getMethod());
+    Assertions.assertEquals("/_plugins/_directquery/_query/{dataSources}", route.getPath());
   }
 
   @Test
   @SneakyThrows
-  public void testRoutes() {
-    List<Route> routes = action.routes();
-    Assertions.assertNotNull(routes);
-    Assertions.assertFalse(routes.isEmpty());
+  public void testSuccessfulResponse() {
+    setDataSourcesEnabled(true);
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.POST);
+    Mockito.when(request.param("dataSources")).thenReturn("testDataSource");
+    String requestContent =
+        "{\"query\":\"up\",\"language\":\"promql\",\"options\":{\"queryType\":\"instant\",\"time\":\"1609459200\"}}";
+    Mockito.when(request.contentParser()).thenReturn(
+        new org.opensearch.common.xcontent.json.JsonXContentParser(
+            org.opensearch.core.xcontent.NamedXContentRegistry.EMPTY,
+            org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            new com.fasterxml.jackson.core.JsonFactory().createParser(requestContent)));
+    Mockito.when(request.consumedParams()).thenReturn(java.util.Collections.emptyList());
+    Mockito.when(request.params()).thenReturn(java.util.Collections.emptyMap());
 
-    // Verify the route matches what you expect
-    boolean foundExpectedRoute = false;
-    for (Route route : routes) {
-      if (Method.POST.equals(route.getMethod())
-          && RestDirectQueryManagementAction.BASE_DIRECT_QUERY_ACTION_URL.equals(route.getPath())) {
-        foundExpectedRoute = true;
-        break;
-      }
-    }
-    Assertions.assertTrue(foundExpectedRoute, "Expected route not found");
+    ArgumentCaptor<org.opensearch.core.action.ActionListener> listenerCaptor =
+        ArgumentCaptor.forClass(org.opensearch.core.action.ActionListener.class);
+
+    Mockito.doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      return null;
+    }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+
+    Mockito.doAnswer(invocation -> {
+      ActionListener listener = invocation.getArgument(2);
+      return null;
+    }).when(nodeClient).execute(
+        Mockito.any(),
+        Mockito.any(),
+        listenerCaptor.capture());
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    String successResponse = "{\"schema\":[{\"name\":\"id\",\"type\":\"integer\"}],\"datarows\":[[1],[2]]}";
+    ExecuteDirectQueryActionResponse response = Mockito.mock(ExecuteDirectQueryActionResponse.class);
+    Mockito.when(response.getResult()).thenReturn(successResponse);
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onResponse(response);
+
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(200, capturedResponse.status().getStatus());
+    Assertions.assertEquals("application/json; charset=UTF-8", capturedResponse.contentType());
+    Assertions.assertEquals(successResponse, capturedResponse.content().utf8ToString());
   }
 
   @Test
-  public void testPrepareRequestWhenDataSourcesNotEnabled() throws Exception {
-    // Set up the mock to return false for DATASOURCES_ENABLED
-    when(settings.getSettingValue(Settings.Key.DATASOURCES_ENABLED)).thenReturn(false);
+  @SneakyThrows
+  public void testBadRequestResponse() {
+    setDataSourcesEnabled(true);
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.POST);
+    Mockito.when(request.param("dataSources")).thenReturn("testDataSource");
+    String requestContent =
+        "{\"query\":\"up\",\"language\":\"promql\",\"options\":{\"queryType\":\"instant\",\"time\":\"1609459200\"}}";
+    Mockito.when(request.contentParser()).thenReturn(
+        new org.opensearch.common.xcontent.json.JsonXContentParser(
+            org.opensearch.core.xcontent.NamedXContentRegistry.EMPTY,
+            org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            new com.fasterxml.jackson.core.JsonFactory().createParser(requestContent)));
+    Mockito.when(request.consumedParams()).thenReturn(java.util.Collections.emptyList());
+    Mockito.when(request.params()).thenReturn(java.util.Collections.emptyMap());
 
-    // Add this line to ensure POST method
-    when(request.method()).thenReturn(Method.POST);
+    ArgumentCaptor<org.opensearch.core.action.ActionListener> listenerCaptor =
+        ArgumentCaptor.forClass(org.opensearch.core.action.ActionListener.class);
 
-    // Use the handleRequest method
-    action.handleRequest(request, channel, nodeClient);
+    Mockito.doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      return null;
+    }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
 
-    // Verify that the client was not interacted with
-    Mockito.verifyNoInteractions(threadPool);
+    Mockito.doAnswer(invocation -> {
+      ActionListener listener = invocation.getArgument(2);
+      return null;
+    }).when(nodeClient).execute(
+        Mockito.any(),
+        Mockito.any(),
+        listenerCaptor.capture());
 
-    // Capture and verify the response
+    unit.handleRequest(request, channel, nodeClient);
+
+    IllegalArgumentException clientError = new IllegalArgumentException("Invalid request parameter");
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onFailure(clientError);
+
     ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
-    Mockito.verify(channel, Mockito.times(1)).sendResponse(responseCaptor.capture());
-    Assertions.assertEquals(400, responseCaptor.getValue().status().getStatus());
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(400, capturedResponse.status().getStatus());
+
+    JsonObject actualResponseJson =
+        new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
+    Assertions.assertEquals(400, actualResponseJson.get("status").getAsInt());
+    Assertions.assertTrue(actualResponseJson.has("error"));
+    Assertions.assertEquals("IllegalArgumentException",
+        actualResponseJson.getAsJsonObject("error").get("type").getAsString());
+    Assertions.assertEquals("Invalid Request",
+        actualResponseJson.getAsJsonObject("error").get("reason").getAsString());
   }
 
   @Test
-  public void testExecuteDirectQueryRequest() throws Exception {
-    // Set up datasources enabled
-    when(settings.getSettingValue(Settings.Key.DATASOURCES_ENABLED)).thenReturn(true);
+  @SneakyThrows
+  public void testInternalServerErrorResponse() {
+    setDataSourcesEnabled(true);
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.POST);
+    Mockito.when(request.param("dataSources")).thenReturn("testDataSource");
+    String requestContent =
+        "{\"query\":\"up\",\"language\":\"promql\",\"options\":{\"queryType\":\"instant\",\"time\":\"1609459200\"}}";
+    Mockito.when(request.contentParser()).thenReturn(
+        new org.opensearch.common.xcontent.json.JsonXContentParser(
+            org.opensearch.core.xcontent.NamedXContentRegistry.EMPTY,
+            org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            new com.fasterxml.jackson.core.JsonFactory().createParser(requestContent)));
+    Mockito.when(request.consumedParams()).thenReturn(java.util.Collections.emptyList());
+    Mockito.when(request.params()).thenReturn(java.util.Collections.emptyMap());
 
-    // Ensure POST method
-    when(request.method()).thenReturn(Method.POST);
+    ArgumentCaptor<org.opensearch.core.action.ActionListener> listenerCaptor =
+        ArgumentCaptor.forClass(org.opensearch.core.action.ActionListener.class);
 
-    // Execute the request
-    action.handleRequest(request, channel, nodeClient);
+    Mockito.doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      return null;
+    }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
 
-    // Capture and verify the response - the action is reporting an error
+    Mockito.doAnswer(invocation -> {
+      ActionListener listener = invocation.getArgument(2);
+      return null;
+    }).when(nodeClient).execute(
+        Mockito.any(),
+        Mockito.any(),
+        listenerCaptor.capture());
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    RuntimeException serverError = new RuntimeException("Internal server error");
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onFailure(serverError);
+
     ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
-    Mockito.verify(channel, Mockito.times(1)).sendResponse(responseCaptor.capture());
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
 
-    // You may want to check the specific error status/message depending on what you expect
-    // For example:
-    Assertions.assertEquals(400, responseCaptor.getValue().status().getStatus());
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(500, capturedResponse.status().getStatus());
+
+    JsonObject actualResponseJson =
+        new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
+    Assertions.assertEquals(500, actualResponseJson.get("status").getAsInt());
+    Assertions.assertTrue(actualResponseJson.has("error"));
+    Assertions.assertEquals("RuntimeException",
+        actualResponseJson.getAsJsonObject("error").get("type").getAsString());
+    Assertions.assertEquals("There was internal problem at backend",
+        actualResponseJson.getAsJsonObject("error").get("reason").getAsString());
+  }
+
+  @Test
+  @SneakyThrows
+  public void testOpenSearchException() {
+    setDataSourcesEnabled(true);
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.POST);
+    Mockito.when(request.param("dataSources")).thenReturn("testDataSource");
+    String requestContent =
+        "{\"query\":\"up\",\"language\":\"promql\",\"options\":{\"queryType\":\"instant\",\"time\":\"1609459200\"}}";
+    Mockito.when(request.contentParser()).thenReturn(
+        new org.opensearch.common.xcontent.json.JsonXContentParser(
+            org.opensearch.core.xcontent.NamedXContentRegistry.EMPTY,
+            org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            new com.fasterxml.jackson.core.JsonFactory().createParser(requestContent)));
+    Mockito.when(request.consumedParams()).thenReturn(java.util.Collections.emptyList());
+    Mockito.when(request.params()).thenReturn(java.util.Collections.emptyMap());
+
+    ArgumentCaptor<org.opensearch.core.action.ActionListener> listenerCaptor =
+        ArgumentCaptor.forClass(org.opensearch.core.action.ActionListener.class);
+
+    Mockito.doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      return null;
+    }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+
+    Mockito.doAnswer(invocation -> {
+      ActionListener listener = invocation.getArgument(2);
+      return null;
+    }).when(nodeClient).execute(
+        Mockito.any(),
+        Mockito.any(),
+        listenerCaptor.capture());
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    OpenSearchException opensearchError = new OpenSearchException("OpenSearch specific error");
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onFailure(opensearchError);
+
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(500, capturedResponse.status().getStatus());
+
+    JsonObject actualResponseJson =
+        new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
+    Assertions.assertEquals(500, actualResponseJson.get("status").getAsInt());
+    Assertions.assertTrue(actualResponseJson.has("error"));
+    Assertions.assertEquals("OpenSearchException",
+        actualResponseJson.getAsJsonObject("error").get("type").getAsString());
+    Assertions.assertEquals("OpenSearch specific error",
+        actualResponseJson.getAsJsonObject("error").get("details").getAsString());
+  }
+
+  private void setDataSourcesEnabled(boolean value) {
+    Mockito.when(settings.getSettingValue(Settings.Key.DATASOURCES_ENABLED)).thenReturn(value);
   }
 }
