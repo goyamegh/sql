@@ -5,17 +5,6 @@
 
 package org.opensearch.sql.datasource.query;
 
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.DisplayNameGenerator;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -23,14 +12,22 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 public class QueryHandlerRegistryTest {
 
-  @Mock
-  private QueryHandler<TestClient> mockHandler1;
-  @Mock
-  private QueryHandler<AnotherTestClient> mockHandler2;
+  @Mock private QueryHandler<TestClient> mockHandler1;
+  @Mock private QueryHandler<AnotherTestClient> mockHandler2;
 
   @Test
   void should_return_empty_when_registry_is_empty() {
@@ -44,7 +41,8 @@ public class QueryHandlerRegistryTest {
     // Setup
     when(mockHandler1.getClientClass()).thenReturn(TestClient.class);
     when(mockHandler1.canHandle(any(TestClient.class))).thenReturn(true);
-    QueryHandlerRegistry registry = new QueryHandlerRegistry(Collections.singletonList(mockHandler1));
+    QueryHandlerRegistry registry =
+        new QueryHandlerRegistry(Collections.singletonList(mockHandler1));
 
     // Execute
     Optional<QueryHandler<TestClient>> result = registry.getQueryHandler(new TestClient());
@@ -59,7 +57,8 @@ public class QueryHandlerRegistryTest {
     // Setup
     when(mockHandler1.getClientClass()).thenReturn(TestClient.class);
     when(mockHandler1.canHandle(any(TestClient.class))).thenReturn(false);
-    QueryHandlerRegistry registry = new QueryHandlerRegistry(Collections.singletonList(mockHandler1));
+    QueryHandlerRegistry registry =
+        new QueryHandlerRegistry(Collections.singletonList(mockHandler1));
 
     // Execute
     Optional<QueryHandler<TestClient>> result = registry.getQueryHandler(new TestClient());
@@ -75,11 +74,13 @@ public class QueryHandlerRegistryTest {
     when(mockHandler2.getClientClass()).thenReturn(AnotherTestClient.class);
     when(mockHandler1.canHandle(any(TestClient.class))).thenReturn(true);
     when(mockHandler2.canHandle(any(AnotherTestClient.class))).thenReturn(true);
-    QueryHandlerRegistry registry = new QueryHandlerRegistry(Arrays.asList(mockHandler1, mockHandler2));
+    QueryHandlerRegistry registry =
+        new QueryHandlerRegistry(Arrays.asList(mockHandler1, mockHandler2));
 
     // Execute
     Optional<QueryHandler<TestClient>> result1 = registry.getQueryHandler(new TestClient());
-    Optional<QueryHandler<AnotherTestClient>> result2 = registry.getQueryHandler(new AnotherTestClient());
+    Optional<QueryHandler<AnotherTestClient>> result2 =
+        registry.getQueryHandler(new AnotherTestClient());
 
     // Verify
     assertTrue(result1.isPresent());
@@ -101,7 +102,8 @@ public class QueryHandlerRegistryTest {
     when(mockHandler1.canHandle(any(TestClient.class))).thenReturn(true);
 
     // Create registry with both handlers
-    QueryHandlerRegistry registry = new QueryHandlerRegistry(Arrays.asList(badHandler, mockHandler1));
+    QueryHandlerRegistry registry =
+        new QueryHandlerRegistry(Arrays.asList(badHandler, mockHandler1));
 
     // Execute
     Optional<QueryHandler<TestClient>> result = registry.getQueryHandler(new TestClient());
@@ -124,7 +126,8 @@ public class QueryHandlerRegistryTest {
     when(mockHandler1.canHandle(any(TestClient.class))).thenReturn(true);
 
     // Create registry with both handlers
-    QueryHandlerRegistry registry = new QueryHandlerRegistry(Arrays.asList(problematicHandler, mockHandler1));
+    QueryHandlerRegistry registry =
+        new QueryHandlerRegistry(Arrays.asList(problematicHandler, mockHandler1));
 
     // Execute
     Optional<QueryHandler<TestClient>> result = registry.getQueryHandler(new TestClient());
@@ -135,9 +138,7 @@ public class QueryHandlerRegistryTest {
   }
 
   // Test client classes
-  private static class TestClient {
-  }
+  private static class TestClient {}
 
-  private static class AnotherTestClient {
-  }
+  private static class AnotherTestClient {}
 }

@@ -63,17 +63,23 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
   public GetDirectQueryResourcesResponse<?> getDirectQueryResources(
       GetDirectQueryResourcesRequest request) {
     var client = dataSourceClientFactory.createClient(request.getDataSource());
-    return queryHandlerRegistry.getQueryHandler(client)
-        .map(handler -> {
-          try {
-            return handler.getResources(client, request);
-          } catch (IOException e) {
-            throw new DataSourceClientException(
-                String.format("Error retrieving resources for data source type: %s",
-                    request.getDataSource()), e);
-          }
-        })
-        .orElseThrow(() -> new IllegalArgumentException(
-            "Unsupported data source type: " + request.getDataSource()));
+    return queryHandlerRegistry
+        .getQueryHandler(client)
+        .map(
+            handler -> {
+              try {
+                return handler.getResources(client, request);
+              } catch (IOException e) {
+                throw new DataSourceClientException(
+                    String.format(
+                        "Error retrieving resources for data source type: %s",
+                        request.getDataSource()),
+                    e);
+              }
+            })
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "Unsupported data source type: " + request.getDataSource()));
   }
 }

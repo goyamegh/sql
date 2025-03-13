@@ -60,8 +60,7 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
             if (queryType == PrometheusQueryType.RANGE
                 && (startTimeStr == null || endTimeStr == null)) {
               return createErrorJson("Start and end times are required for Prometheus queries");
-            } else if (queryType == PrometheusQueryType.INSTANT
-                && options.getTime() == null) {
+            } else if (queryType == PrometheusQueryType.INSTANT && options.getTime() == null) {
               return createErrorJson("Time is required for instant Prometheus queries");
             }
 

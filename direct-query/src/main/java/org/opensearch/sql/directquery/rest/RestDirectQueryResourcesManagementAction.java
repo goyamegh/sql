@@ -5,7 +5,14 @@
 
 package org.opensearch.sql.directquery.rest;
 
+import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
+import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.rest.RestRequest.Method.GET;
+
 import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,14 +35,6 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.util.RestRequestUtil;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
-
-import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
-import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.opensearch.rest.RestRequest.Method.GET;
-
 @RequiredArgsConstructor
 public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
 
@@ -55,8 +54,16 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
   @Override
   public List<Route> routes() {
     return ImmutableList.of(
-        new Route(GET, String.format(Locale.ROOT, "%s/api/v1/{resourceType}", BASE_DIRECT_QUERY_RESOURCES_URL)),
-        new Route(GET, String.format(Locale.ROOT, "%s/api/v1/{resourceType}/{resourceName}/values", BASE_DIRECT_QUERY_RESOURCES_URL)));
+        new Route(
+            GET,
+            String.format(
+                Locale.ROOT, "%s/api/v1/{resourceType}", BASE_DIRECT_QUERY_RESOURCES_URL)),
+        new Route(
+            GET,
+            String.format(
+                Locale.ROOT,
+                "%s/api/v1/{resourceType}/{resourceName}/values",
+                BASE_DIRECT_QUERY_RESOURCES_URL)));
   }
 
   @Override

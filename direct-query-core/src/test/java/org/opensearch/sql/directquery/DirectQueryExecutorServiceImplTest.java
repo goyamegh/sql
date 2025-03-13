@@ -238,15 +238,15 @@ public class DirectQueryExecutorServiceImplTest {
         .thenThrow(new IOException("Failed to get resources"));
 
     // Test
-    DataSourceClientException exception = assertThrows(
-        DataSourceClientException.class,
-        () -> executorService.getDirectQueryResources(request));
+    DataSourceClientException exception =
+        assertThrows(
+            DataSourceClientException.class,
+            () -> executorService.getDirectQueryResources(request));
 
     // Verify
     assertNotNull(exception);
     assertEquals(
-        "Error retrieving resources for data source type: " + dataSource,
-        exception.getMessage());
+        "Error retrieving resources for data source type: " + dataSource, exception.getMessage());
     assertTrue(exception.getCause() instanceof IOException);
     assertEquals("Failed to get resources", exception.getCause().getMessage());
   }

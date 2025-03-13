@@ -5,6 +5,16 @@
 
 package org.opensearch.sql.prometheus.client;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
 import okhttp3.OkHttpClient;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -14,18 +24,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.prometheus.exception.PrometheusClientException;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PrometheusClientImplTest {
 
@@ -178,7 +176,8 @@ public class PrometheusClientImplTest {
   @Test
   public void testGetLabelsByMetricName() throws IOException {
     // Setup
-    String successResponse = "{\"status\":\"success\",\"data\":[\"job\",\"instance\",\"__name__\"]}";
+    String successResponse =
+        "{\"status\":\"success\",\"data\":[\"job\",\"instance\",\"__name__\"]}";
     mockWebServer.enqueue(new MockResponse().setBody(successResponse));
 
     // Test
@@ -232,7 +231,8 @@ public class PrometheusClientImplTest {
   public void testGetAllMetricsWithParams() throws IOException {
     // Setup
     String successResponse =
-        "{\"status\":\"success\",\"data\":{\"go_gc_duration_seconds\":[{\"type\":\"histogram\",\"help\":\"A summary of the pause duration of garbage collection cycles.\",\"unit\":\"\"}]}}";
+        "{\"status\":\"success\",\"data\":{\"go_gc_duration_seconds\":[{\"type\":\"histogram\",\"help\":\"A"
+            + " summary of the pause duration of garbage collection cycles.\",\"unit\":\"\"}]}}";
     mockWebServer.enqueue(new MockResponse().setBody(successResponse));
 
     // Test
@@ -246,7 +246,8 @@ public class PrometheusClientImplTest {
     assertTrue(result.containsKey("go_gc_duration_seconds"));
     assertEquals(1, result.get("go_gc_duration_seconds").size());
     assertEquals("histogram", result.get("go_gc_duration_seconds").getFirst().getType());
-    assertEquals("A summary of the pause duration of garbage collection cycles.",
+    assertEquals(
+        "A summary of the pause duration of garbage collection cycles.",
         result.get("go_gc_duration_seconds").getFirst().getHelp());
   }
 
@@ -254,7 +255,8 @@ public class PrometheusClientImplTest {
   public void testGetAllMetrics() throws IOException {
     // Setup
     String successResponse =
-        "{\"status\":\"success\",\"data\":{\"http_requests_total\":[{\"type\":\"counter\",\"help\":\"Total number of HTTP requests\",\"unit\":\"requests\"}]}}";
+        "{\"status\":\"success\",\"data\":{\"http_requests_total\":[{\"type\":\"counter\",\"help\":\"Total"
+            + " number of HTTP requests\",\"unit\":\"requests\"}]}}";
     mockWebServer.enqueue(new MockResponse().setBody(successResponse));
 
     // Test
@@ -266,7 +268,8 @@ public class PrometheusClientImplTest {
     assertTrue(result.containsKey("http_requests_total"));
     assertEquals(1, result.get("http_requests_total").size());
     assertEquals("counter", result.get("http_requests_total").getFirst().getType());
-    assertEquals("Total number of HTTP requests", result.get("http_requests_total").getFirst().getHelp());
+    assertEquals(
+        "Total number of HTTP requests", result.get("http_requests_total").getFirst().getHelp());
     assertEquals("requests", result.get("http_requests_total").getFirst().getUnit());
   }
 
@@ -301,9 +304,8 @@ public class PrometheusClientImplTest {
   public void testReadResponseWithRequestId() throws Exception {
     // Setup
     String successResponse = "{\"status\":\"success\",\"data\":[\"job\",\"instance\"]}";
-    MockResponse mockResponse = new MockResponse()
-        .setBody(successResponse)
-        .addHeader("X-Request-ID", "test-request-id");
+    MockResponse mockResponse =
+        new MockResponse().setBody(successResponse).addHeader("X-Request-ID", "test-request-id");
     mockWebServer.enqueue(mockResponse);
 
     // Test - the request ID will be logged but we can verify the method completes successfully

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Response class for direct query resources.
@@ -11,6 +12,7 @@ import lombok.Data;
  * @param <T> The type of data contained in the response
  */
 @Data
+@NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GetDirectQueryResourcesResponse<T> {
   private T data;

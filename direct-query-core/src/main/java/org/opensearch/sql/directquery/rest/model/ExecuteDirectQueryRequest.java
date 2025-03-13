@@ -19,8 +19,7 @@ public class ExecuteDirectQueryRequest {
   // Required fields
   private String dataSources; // Required: From URI path parameter or request body
   private String query; // Required: String for Prometheus, object for CloudWatch
-  @Setter
-  private LangType language; // Required: SQL, PPL, or PROMQL
+  @Setter private LangType language; // Required: SQL, PPL, or PROMQL
   private String sourceVersion; // Required: API version
 
   // Optional fields
@@ -53,5 +52,4 @@ public class ExecuteDirectQueryRequest {
   public void setPrometheusOptions(PrometheusOptions prometheusOptions) {
     this.options = prometheusOptions;
   }
-
 }
