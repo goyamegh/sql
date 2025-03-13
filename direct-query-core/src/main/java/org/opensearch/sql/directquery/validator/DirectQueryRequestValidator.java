@@ -11,7 +11,8 @@ import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 public class DirectQueryRequestValidator {
-  private DirectQueryRequestValidator() {}
+  private DirectQueryRequestValidator() {
+  }
 
   public static void validateRequest(ExecuteDirectQueryRequest request) {
     if (request == null) {
@@ -37,43 +38,48 @@ public class DirectQueryRequestValidator {
       }
 
       // Validate based on query type
-      if (prometheusOptions.getQueryType() == PrometheusQueryType.RANGE) {
-        String start = prometheusOptions.getStart();
-        String end = prometheusOptions.getEnd();
+      switch (prometheusOptions.getQueryType()) {
+        case PrometheusQueryType.RANGE:
+          String start = prometheusOptions.getStart();
+          String end = prometheusOptions.getEnd();
 
-        if (start == null || end == null) {
-          throw new IllegalArgumentException("Start and end times are required for range queries");
-        }
-
-        // Validate step parameter
-        if (prometheusOptions.getStep() == null || prometheusOptions.getStep().isEmpty()) {
-          throw new IllegalArgumentException("Step parameter is required for range queries");
-        }
-
-        // Validate timestamps
-        try {
-          long startTimestamp = Long.parseLong(start);
-          long endTimestamp = Long.parseLong(end);
-          if (endTimestamp <= startTimestamp) {
-            throw new IllegalArgumentException("End time must be after start time");
+          if (start == null || end == null) {
+            throw new IllegalArgumentException("Start and end times are required for range queries");
           }
-        } catch (NumberFormatException e) {
-          throw new IllegalArgumentException(
-              "Invalid time format: start and end must be numeric timestamps");
-        }
-      } else if (prometheusOptions.getQueryType() == PrometheusQueryType.INSTANT) {
-        // For instant queries, validate time parameter
-        if (prometheusOptions.getTime() == null) {
-          throw new IllegalArgumentException("Time parameter is required for instant queries");
-        }
 
-        // Validate time format
-        try {
-          Long.parseLong(prometheusOptions.getTime());
-        } catch (NumberFormatException e) {
-          throw new IllegalArgumentException(
-              "Invalid time format: time must be a numeric timestamp");
-        }
+          // Validate step parameter
+          if (prometheusOptions.getStep() == null || prometheusOptions.getStep().isEmpty()) {
+            throw new IllegalArgumentException("Step parameter is required for range queries");
+          }
+
+          // Validate timestamps
+          try {
+            long startTimestamp = Long.parseLong(start);
+            long endTimestamp = Long.parseLong(end);
+            if (endTimestamp <= startTimestamp) {
+              throw new IllegalArgumentException("End time must be after start time");
+            }
+          } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                "Invalid time format: start and end must be numeric timestamps");
+          }
+          break;
+
+        case PrometheusQueryType.INSTANT:
+        default: // should not happen. Replace with switch expression when dropping JDK11 support
+          // For instant queries, validate time parameter
+          if (prometheusOptions.getTime() == null) {
+            throw new IllegalArgumentException("Time parameter is required for instant queries");
+          }
+
+          // Validate time format
+          try {
+            Long.parseLong(prometheusOptions.getTime());
+          } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                "Invalid time format: time must be a numeric timestamp");
+          }
+          break;
       }
     }
   }

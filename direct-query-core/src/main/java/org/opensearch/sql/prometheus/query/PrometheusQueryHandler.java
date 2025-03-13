@@ -64,8 +64,8 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
               return createErrorJson("Time is required for instant Prometheus queries");
             }
 
-            String result = switch (queryType) {
-              case RANGE -> {
+            switch (queryType) {
+              case RANGE: {
                 JSONObject metricData = client.queryRange(
                     request.getQuery(),
                     Long.parseLong(startTimeStr),
@@ -74,19 +74,20 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
                     limit,
                     timeout
                 );
-                yield metricData.toString();
+                return metricData.toString();
               }
-              case INSTANT -> {
+
+              case INSTANT:
+              default: {
                 JSONObject metricData = client.query(
                     request.getQuery(),
                     Long.parseLong(options.getTime()),
                     limit,
                     timeout
                 );
-                yield metricData.toString();
+                return metricData.toString();
               }
-            };
-            return result;
+            }
           } catch (NumberFormatException e) {
             return createErrorJson("Invalid time format: " + e.getMessage());
           } catch (org.opensearch.sql.prometheus.exception.PrometheusClientException e) {
