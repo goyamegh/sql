@@ -52,20 +52,54 @@ test {
         exceptionFormat "full"
     }
 }
+task junit4(type: Test) {
+    useJUnitPlatform {
+        includeEngines("junit-vintage")
+    }
+    systemProperty 'tests.security.manager', 'false'
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
 
 jacocoTestReport {
+    dependsOn test, junit4
+    executionData test, junit4
     reports {
         html.required = true
         xml.required = true
     }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it)
+        }))
+    }
 }
 
 jacocoTestCoverageVerification {
+    dependsOn test, junit4
+    executionData test, junit4
     violationRules {
         rule {
+            element = 'CLASS'
+            excludes = [
+            ]
             limit {
-                minimum = 0.0  // Start with a low threshold to get going
+                counter = 'LINE'
+                minimum = 1.0
+            }
+            limit {
+                counter = 'BRANCH'
+                minimum = 1.0
             }
         }
     }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it)
+        }))
+    }
 }
+check.dependsOn jacocoTestCoverageVerification
+jacocoTestCoverageVerification.dependsOn jacocoTestReport
