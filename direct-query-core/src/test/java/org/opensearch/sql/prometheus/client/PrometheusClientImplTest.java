@@ -5,25 +5,40 @@
 
 package org.opensearch.sql.prometheus.client;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
+import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
+import okhttp3.Request;
+import okhttp3.Response;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okio.Timeout;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.prometheus.exception.PrometheusClientException;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class PrometheusClientImplTest {
 
@@ -124,7 +139,7 @@ public class PrometheusClientImplTest {
   @Test
   public void testQueryRangeWithNon2xxError() {
     // Setup
-    mockWebServer.enqueue(new MockResponse().setResponseCode(400).setBody(""));
+    mockWebServer.enqueue(new MockResponse().setResponseCode(400).setBody("Mock Error"));
 
     // Test & Verify
     PrometheusClientException exception =
@@ -132,7 +147,44 @@ public class PrometheusClientImplTest {
             PrometheusClientException.class,
             () -> client.queryRange("up", 1435781430L, 1435781460L, "15s"));
     assertTrue(
-        exception.getMessage().contains("Request to Prometheus is Unsuccessful with code: 400"));
+        exception.getMessage().contains("Request to Prometheus is Unsuccessful with code: 400. Error details: Mock Error"));
+  }
+
+  /**
+   * response.body() is @Nullable, to test the null path we need to create a spy client.
+   */
+  @Test
+  public void testQueryRangeWithNon2xxErrorNullBody() {
+    Request dummyRequest = new Request.Builder()
+        .url(mockWebServer.url("/"))
+        .build();
+    Response nullBodyResponse = new Response.Builder()
+        .request(dummyRequest)
+        .protocol(Protocol.HTTP_1_1)
+        .code(400)
+        .message("Bad Request")
+        .body(null)
+        .build();
+    OkHttpClient spyClient = spy(new OkHttpClient());
+    Call mockCall = mock(Call.class);
+    try {
+      when(mockCall.execute()).thenReturn(nullBodyResponse);
+    } catch (IOException e) {
+      fail("Unexpected IOException");
+    }
+    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
+
+    PrometheusClientImpl nullBodyClient =
+        new PrometheusClientImpl(
+            spyClient,
+            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> nullBodyClient.queryRange("up", 1435781430L, 1435781460L, "15s"));
+    assertTrue(
+        exception.getMessage().contains("Request to Prometheus is Unsuccessful with code: 400. Error details: No response body"));
   }
 
   @Test
@@ -144,6 +196,27 @@ public class PrometheusClientImplTest {
 
     // Test
     JSONObject result = client.query("up", 1435781460L, 100, 30);
+
+    // Verify
+    assertNotNull(result);
+    assertEquals("success", result.getString("status"));
+    JSONObject data = result.getJSONObject("data");
+    assertEquals("vector", data.getString("resultType"));
+    JSONArray resultArray = data.getJSONArray("result");
+    assertEquals(1, resultArray.length());
+    JSONObject metric = resultArray.getJSONObject(0).getJSONObject("metric");
+    assertEquals("up", metric.getString("__name__"));
+  }
+
+  @Test
+  public void testQueryWithNullParams() throws IOException {
+    // Setup
+    String successResponse =
+        "{\"status\":\"success\",\"data\":{\"resultType\":\"vector\",\"result\":[{\"metric\":{\"__name__\":\"up\",\"job\":\"prometheus\",\"instance\":\"localhost:9090\"},\"value\":[1435781460.781,\"1\"]}]}}";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    JSONObject result = client.query("up", null, null, null);
 
     // Verify
     assertNotNull(result);

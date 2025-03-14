@@ -84,6 +84,8 @@ jacocoTestCoverageVerification {
         rule {
             element = 'CLASS'
             excludes = [
+                'org.opensearch.sql.prometheus.model.*',
+                'org.opensearch.sql.directquery.rest.model.*'
             ]
             limit {
                 counter = 'LINE'
