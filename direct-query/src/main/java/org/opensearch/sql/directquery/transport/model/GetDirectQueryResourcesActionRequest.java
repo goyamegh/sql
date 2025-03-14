@@ -5,13 +5,16 @@
 
 package org.opensearch.sql.directquery.transport.model;
 
-import java.io.IOException;
+import lombok.Getter;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 
+import java.io.IOException;
+
+@Getter
 public class GetDirectQueryResourcesActionRequest extends ActionRequest {
   private final GetDirectQueryResourcesRequest directQueryRequest;
 
@@ -21,19 +24,24 @@ public class GetDirectQueryResourcesActionRequest extends ActionRequest {
 
   public GetDirectQueryResourcesActionRequest(StreamInput in) throws IOException {
     super(in);
-    // In a real implementation, deserialize the request
-    // This is just a placeholder since we don't have the full serialization code
-    this.directQueryRequest = new GetDirectQueryResourcesRequest();
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setDataSource(in.readOptionalString());
+    request.setResourceType(in.readOptionalString());
+    request.setResourceName(in.readOptionalString());
+    request.setQueryParams(in.readMap(StreamInput::readString, StreamInput::readString));
+    this.directQueryRequest = request;
   }
 
   @Override
   public void writeTo(StreamOutput out) throws IOException {
     super.writeTo(out);
-    // Add serialization logic if needed
-  }
-
-  public GetDirectQueryResourcesRequest getDirectQueryRequest() {
-    return directQueryRequest;
+    out.writeOptionalString(directQueryRequest.getDataSource());
+    out.writeOptionalString(directQueryRequest.getResourceType());
+    out.writeOptionalString(directQueryRequest.getResourceName());
+    out.writeMap(
+        directQueryRequest.getQueryParams(),
+        StreamOutput::writeString,
+        StreamOutput::writeString);
   }
 
   @Override
