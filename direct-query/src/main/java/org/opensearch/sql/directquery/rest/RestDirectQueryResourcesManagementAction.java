@@ -85,19 +85,19 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
 
   private RestChannelConsumer executeGetResourcesRequest(
       RestRequest restRequest, NodeClient nodeClient) {
-    GetDirectQueryResourcesRequest directQueryRequest = new GetDirectQueryResourcesRequest();
-    directQueryRequest.setDataSource(restRequest.param("dataSource"));
-    directQueryRequest.setResourceType(restRequest.param("resourceType"));
-    if (restRequest.param("resourceName") != null) {
-      directQueryRequest.setResourceName(restRequest.param("resourceName"));
-    }
-    directQueryRequest.setQueryParams(
-        restRequest.params().keySet().stream()
-            .filter(p -> !restRequest.consumedParams().contains(p))
-            .collect(Collectors.toMap(p -> p, restRequest::param)));
-
     return restChannel -> {
       try {
+        GetDirectQueryResourcesRequest directQueryRequest = new GetDirectQueryResourcesRequest();
+        directQueryRequest.setDataSource(restRequest.param("dataSource"));
+        directQueryRequest.setResourceType(restRequest.param("resourceType"));
+        if (restRequest.param("resourceName") != null) {
+          directQueryRequest.setResourceName(restRequest.param("resourceName"));
+        }
+        directQueryRequest.setQueryParams(
+            restRequest.params().keySet().stream()
+                .filter(p -> !restRequest.consumedParams().contains(p))
+                .collect(Collectors.toMap(p -> p, restRequest::param)));
+
         Scheduler.schedule(
             nodeClient,
             () ->
