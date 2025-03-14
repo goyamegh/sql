@@ -138,16 +138,6 @@ public class RestDirectQueryResourcesManagementActionTest {
 
   @Test
   @SneakyThrows
-  public void testBuildingRequestWithIllegalArgumentExceptionDoesNotThrow() {
-    setDataSourcesEnabled(true);
-    Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
-    Mockito.when(request.param("dataSource")).thenThrow(new IllegalArgumentException());
-
-    assertDoesNotThrow(() -> unit.handleRequest(request, channel, nodeClient));
-  }
-
-  @Test
-  @SneakyThrows
   public void testSuccessfulResponse() {
     setDataSourcesEnabled(true);
     String successResponse = "{\"result\":\"success\"}";

@@ -5,14 +5,7 @@
 
 package org.opensearch.sql.directquery.rest;
 
-import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
-import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.opensearch.rest.RestRequest.Method.GET;
-
 import com.google.common.collect.ImmutableList;
-import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,6 +27,14 @@ import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesAct
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.util.RestRequestUtil;
 import org.opensearch.transport.client.node.NodeClient;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
+import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
+import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.rest.RestRequest.Method.GET;
 
 @RequiredArgsConstructor
 public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
@@ -85,44 +86,38 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
 
   private RestChannelConsumer executeGetResourcesRequest(
       RestRequest restRequest, NodeClient nodeClient) {
-    return restChannel -> {
-      try {
-        GetDirectQueryResourcesRequest directQueryRequest = new GetDirectQueryResourcesRequest();
-        directQueryRequest.setDataSource(restRequest.param("dataSource"));
-        directQueryRequest.setResourceType(restRequest.param("resourceType"));
-        if (restRequest.param("resourceName") != null) {
-          directQueryRequest.setResourceName(restRequest.param("resourceName"));
-        }
-        directQueryRequest.setQueryParams(
-            restRequest.params().keySet().stream()
-                .filter(p -> !restRequest.consumedParams().contains(p))
-                .collect(Collectors.toMap(p -> p, restRequest::param)));
+    GetDirectQueryResourcesRequest directQueryRequest = new GetDirectQueryResourcesRequest();
+    directQueryRequest.setDataSource(restRequest.param("dataSource"));
+    directQueryRequest.setResourceType(restRequest.param("resourceType"));
+    if (restRequest.param("resourceName") != null) {
+      directQueryRequest.setResourceName(restRequest.param("resourceName"));
+    }
+    directQueryRequest.setQueryParams(
+        restRequest.params().keySet().stream()
+            .filter(p -> !restRequest.consumedParams().contains(p))
+            .collect(Collectors.toMap(p -> p, restRequest::param)));
 
-        Scheduler.schedule(
-            nodeClient,
-            () ->
-                nodeClient.execute(
-                    TransportGetDirectQueryResourcesRequestAction.ACTION_TYPE,
-                    new GetDirectQueryResourcesActionRequest(directQueryRequest),
-                    new ActionListener<>() {
-                      @Override
-                      public void onResponse(GetDirectQueryResourcesActionResponse response) {
-                        restChannel.sendResponse(
-                            new BytesRestResponse(
-                                RestStatus.OK,
-                                "application/json; charset=UTF-8",
-                                response.getResult()));
-                      }
+    return restChannel -> Scheduler.schedule(
+        nodeClient,
+        () ->
+            nodeClient.execute(
+                TransportGetDirectQueryResourcesRequestAction.ACTION_TYPE,
+                new GetDirectQueryResourcesActionRequest(directQueryRequest),
+                new ActionListener<>() {
+                  @Override
+                  public void onResponse(GetDirectQueryResourcesActionResponse response) {
+                    restChannel.sendResponse(
+                        new BytesRestResponse(
+                            RestStatus.OK,
+                            "application/json; charset=UTF-8",
+                            response.getResult()));
+                  }
 
-                      @Override
-                      public void onFailure(Exception e) {
-                        handleException(e, restChannel, restRequest.method());
-                      }
-                    }));
-      } catch (Exception e) {
-        handleException(e, restChannel, restRequest.method());
-      }
-    };
+                  @Override
+                  public void onFailure(Exception e) {
+                    handleException(e, restChannel, restRequest.method());
+                  }
+                }));
   }
 
   private void handleException(
