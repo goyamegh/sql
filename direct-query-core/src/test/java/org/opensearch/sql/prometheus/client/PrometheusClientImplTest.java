@@ -5,28 +5,6 @@
 
 package org.opensearch.sql.prometheus.client;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okio.Timeout;
-import org.jetbrains.annotations.NotNull;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.opensearch.sql.prometheus.exception.PrometheusClientException;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -34,11 +12,28 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.opensearch.sql.prometheus.exception.PrometheusClientException;
 
 public class PrometheusClientImplTest {
 
@@ -147,24 +142,24 @@ public class PrometheusClientImplTest {
             PrometheusClientException.class,
             () -> client.queryRange("up", 1435781430L, 1435781460L, "15s"));
     assertTrue(
-        exception.getMessage().contains("Request to Prometheus is Unsuccessful with code: 400. Error details: Mock Error"));
+        exception
+            .getMessage()
+            .contains(
+                "Request to Prometheus is Unsuccessful with code: 400. Error details: Mock Error"));
   }
 
-  /**
-   * response.body() is @Nullable, to test the null path we need to create a spy client.
-   */
+  /** response.body() is @Nullable, to test the null path we need to create a spy client. */
   @Test
   public void testQueryRangeWithNon2xxErrorNullBody() {
-    Request dummyRequest = new Request.Builder()
-        .url(mockWebServer.url("/"))
-        .build();
-    Response nullBodyResponse = new Response.Builder()
-        .request(dummyRequest)
-        .protocol(Protocol.HTTP_1_1)
-        .code(400)
-        .message("Bad Request")
-        .body(null)
-        .build();
+    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
+    Response nullBodyResponse =
+        new Response.Builder()
+            .request(dummyRequest)
+            .protocol(Protocol.HTTP_1_1)
+            .code(400)
+            .message("Bad Request")
+            .body(null)
+            .build();
     OkHttpClient spyClient = spy(new OkHttpClient());
     Call mockCall = mock(Call.class);
     try {
@@ -184,7 +179,11 @@ public class PrometheusClientImplTest {
             PrometheusClientException.class,
             () -> nullBodyClient.queryRange("up", 1435781430L, 1435781460L, "15s"));
     assertTrue(
-        exception.getMessage().contains("Request to Prometheus is Unsuccessful with code: 400. Error details: No response body"));
+        exception
+            .getMessage()
+            .contains(
+                "Request to Prometheus is Unsuccessful with code: 400. Error details: No response"
+                    + " body"));
   }
 
   @Test

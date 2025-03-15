@@ -33,11 +33,17 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
     // TODO: Replace with the data source query id.
     String queryId = UUID.randomUUID().toString();
     String sessionId = request.getSessionId(); // Session ID is passed as is
-
+    String dataSourceName = request.getDataSources();
+    String dataSourceType = null;
     String result;
+
     try {
+      // Get data source type before creating the client
+      dataSourceType =
+          dataSourceClientFactory.getDataSourceType(dataSourceName).name().toLowerCase();
+
       // Let Java infer the type
-      var client = dataSourceClientFactory.createClient(request.getDataSources());
+      var client = dataSourceClientFactory.createClient(dataSourceName);
 
       // No need to specify Object type parameter, let the registry infer it
       result =
@@ -56,7 +62,9 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
     } catch (Exception e) {
       result = "{\"error\": \"" + e.getMessage() + "\"}";
     }
-    return new ExecuteDirectQueryResponse(queryId, result, sessionId);
+
+    // Pass the data source type along with the result
+    return new ExecuteDirectQueryResponse(queryId, result, sessionId, dataSourceType);
   }
 
   @Override

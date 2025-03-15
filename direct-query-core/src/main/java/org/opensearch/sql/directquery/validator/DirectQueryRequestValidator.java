@@ -11,8 +11,7 @@ import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 public class DirectQueryRequestValidator {
-  private DirectQueryRequestValidator() {
-  }
+  private DirectQueryRequestValidator() {}
 
   public static void validateRequest(ExecuteDirectQueryRequest request) {
     if (request == null) {
@@ -44,7 +43,8 @@ public class DirectQueryRequestValidator {
           String end = prometheusOptions.getEnd();
 
           if (start == null || end == null) {
-            throw new IllegalArgumentException("Start and end times are required for range queries");
+            throw new IllegalArgumentException(
+                "Start and end times are required for range queries");
           }
 
           // Validate step parameter

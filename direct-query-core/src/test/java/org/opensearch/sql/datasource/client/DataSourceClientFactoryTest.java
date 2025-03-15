@@ -25,6 +25,7 @@ import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
+import org.opensearch.sql.prometheus.utils.PrometheusClientUtils;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceClientFactoryTest {
@@ -74,9 +75,9 @@ public class DataSourceClientFactoryTest {
     String dataSourceName = "prometheusWithAuth";
     Map<String, String> properties = new HashMap<>();
     properties.put(DataSourceClientFactory.URI, "http://prometheus:9090");
-    properties.put(DataSourceClientFactory.AUTH_TYPE, "basicauth");
-    properties.put(DataSourceClientFactory.USERNAME, "user");
-    properties.put(DataSourceClientFactory.PASSWORD, "pass");
+    properties.put(PrometheusClientUtils.AUTH_TYPE, "basicauth");
+    properties.put(PrometheusClientUtils.USERNAME, "user");
+    properties.put(PrometheusClientUtils.PASSWORD, "pass");
 
     DataSourceMetadata metadata =
         new DataSourceMetadata.Builder()
@@ -101,10 +102,10 @@ public class DataSourceClientFactoryTest {
     String dataSourceName = "prometheusWithAwsAuth";
     Map<String, String> properties = new HashMap<>();
     properties.put(DataSourceClientFactory.URI, "http://prometheus:9090");
-    properties.put(DataSourceClientFactory.AUTH_TYPE, "awssigv4");
-    properties.put(DataSourceClientFactory.ACCESS_KEY, "access-key");
-    properties.put(DataSourceClientFactory.SECRET_KEY, "secret-key");
-    properties.put(DataSourceClientFactory.REGION, "us-west-1");
+    properties.put(PrometheusClientUtils.AUTH_TYPE, "awssigv4");
+    properties.put(PrometheusClientUtils.ACCESS_KEY, "access-key");
+    properties.put(PrometheusClientUtils.SECRET_KEY, "secret-key");
+    properties.put(PrometheusClientUtils.REGION, "us-west-1");
 
     DataSourceMetadata metadata =
         new DataSourceMetadata.Builder()
@@ -200,7 +201,7 @@ public class DataSourceClientFactoryTest {
     String dataSourceName = "unsupportedAuth";
     Map<String, String> properties = new HashMap<>();
     properties.put(DataSourceClientFactory.URI, "http://prometheus:9090");
-    properties.put(DataSourceClientFactory.AUTH_TYPE, "unsupported");
+    properties.put(PrometheusClientUtils.AUTH_TYPE, "unsupported");
 
     DataSourceMetadata metadata =
         new DataSourceMetadata.Builder()

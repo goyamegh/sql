@@ -5,14 +5,13 @@
 
 package org.opensearch.sql.directquery.transport.model;
 
+import java.io.IOException;
 import lombok.Getter;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
-
-import java.io.IOException;
 
 @Getter
 public class GetDirectQueryResourcesActionRequest extends ActionRequest {
@@ -39,9 +38,7 @@ public class GetDirectQueryResourcesActionRequest extends ActionRequest {
     out.writeOptionalString(directQueryRequest.getResourceType());
     out.writeOptionalString(directQueryRequest.getResourceName());
     out.writeMap(
-        directQueryRequest.getQueryParams(),
-        StreamOutput::writeString,
-        StreamOutput::writeString);
+        directQueryRequest.getQueryParams(), StreamOutput::writeString, StreamOutput::writeString);
   }
 
   @Override

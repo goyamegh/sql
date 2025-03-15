@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.directquery.rest.model;
 
 import lombok.AllArgsConstructor;
@@ -11,4 +16,5 @@ public class ExecuteDirectQueryResponse {
   private String queryId;
   private String result;
   private String sessionId;
+  private String dataSourceType;
 }

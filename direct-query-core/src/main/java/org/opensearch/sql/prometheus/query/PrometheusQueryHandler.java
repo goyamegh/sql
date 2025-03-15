@@ -65,28 +65,27 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
             }
 
             switch (queryType) {
-              case RANGE: {
-                JSONObject metricData = client.queryRange(
-                    request.getQuery(),
-                    Long.parseLong(startTimeStr),
-                    Long.parseLong(endTimeStr),
-                    options.getStep(),
-                    limit,
-                    timeout
-                );
-                return metricData.toString();
-              }
+              case RANGE:
+                {
+                  JSONObject metricData =
+                      client.queryRange(
+                          request.getQuery(),
+                          Long.parseLong(startTimeStr),
+                          Long.parseLong(endTimeStr),
+                          options.getStep(),
+                          limit,
+                          timeout);
+                  return metricData.toString();
+                }
 
               case INSTANT:
-              default: {
-                JSONObject metricData = client.query(
-                    request.getQuery(),
-                    Long.parseLong(options.getTime()),
-                    limit,
-                    timeout
-                );
-                return metricData.toString();
-              }
+              default:
+                {
+                  JSONObject metricData =
+                      client.query(
+                          request.getQuery(), Long.parseLong(options.getTime()), limit, timeout);
+                  return metricData.toString();
+                }
             }
           } catch (NumberFormatException e) {
             return createErrorJson("Invalid time format: " + e.getMessage());

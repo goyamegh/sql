@@ -190,7 +190,7 @@ public class DirectQueryRequestConverterTest {
     assertEquals("prometheus", request.getDataSources());
     assertEquals("up", request.getQuery());
     assertEquals(LangType.PROMQL, request.getLanguage());
-    
+
     PrometheusOptions options = request.getPrometheusOptions();
     assertNotNull(options);
     assertNull(options.getTime());

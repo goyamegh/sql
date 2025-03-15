@@ -16,7 +16,6 @@ import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionRequest;
 import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
-import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -36,7 +35,7 @@ public class TransportExecuteDirectQueryRequestAction
       ActionFilters actionFilters,
       DirectQueryExecutorServiceImpl directQueryExecutorService) {
     super(NAME, transportService, actionFilters, ExecuteDirectQueryActionRequest::new);
-    this.directQueryExecutorService = (DirectQueryExecutorService) directQueryExecutorService;
+    this.directQueryExecutorService = directQueryExecutorService;
   }
 
   @Override
@@ -49,17 +48,15 @@ public class TransportExecuteDirectQueryRequestAction
 
       ExecuteDirectQueryResponse response =
           directQueryExecutorService.executeDirectQuery(directQueryRequest);
-      String responseContent =
-          new JsonResponseFormatter<ExecuteDirectQueryResponse>(
-              JsonResponseFormatter.Style.PRETTY) {
-            @Override
-            protected Object buildJsonObject(ExecuteDirectQueryResponse response) {
-              return response;
-            }
-          }.format(response);
+
+      // Pass the data source name from the request to the response constructor
       listener.onResponse(
           new ExecuteDirectQueryActionResponse(
-              response.getQueryId(), responseContent, response.getSessionId()));
+              response.getQueryId(),
+              response.getResult(),
+              response.getSessionId(),
+              directQueryRequest.getDataSources(),
+              response.getDataSourceType()));
     } catch (Exception e) {
       listener.onFailure(e);
     }

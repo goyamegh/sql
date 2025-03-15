@@ -1,8 +1,14 @@
 package org.opensearch.sql.directquery.rest;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,14 +29,6 @@ import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesAct
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.withSettings;
 
 public class RestDirectQueryResourcesManagementActionTest {
 
@@ -119,15 +117,23 @@ public class RestDirectQueryResourcesManagementActionTest {
 
     for (RestDirectQueryResourcesManagementAction.Route route : routes) {
       if (RestRequest.Method.GET.equals(route.getMethod())
-          && route.getPath().equals(String.format(
-          Locale.ROOT, "%s/api/v1/{resourceType}",
-          RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
+          && route
+              .getPath()
+              .equals(
+                  String.format(
+                      Locale.ROOT,
+                      "%s/api/v1/{resourceType}",
+                      RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
         foundResourceTypeRoute = true;
       }
       if (RestRequest.Method.GET.equals(route.getMethod())
-          && route.getPath().equals(String.format(
-          Locale.ROOT, "%s/api/v1/{resourceType}/{resourceName}/values",
-          RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
+          && route
+              .getPath()
+              .equals(
+                  String.format(
+                      Locale.ROOT,
+                      "%s/api/v1/{resourceType}/{resourceName}/values",
+                      RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
         foundResourceValuesRoute = true;
       }
     }
@@ -141,43 +147,60 @@ public class RestDirectQueryResourcesManagementActionTest {
   public void testSuccessfulResponse() {
     setDataSourcesEnabled(true);
     String successResponse = "{\"result\":\"success\"}";
-    GetDirectQueryResourcesActionResponse response = new GetDirectQueryResourcesActionResponse(successResponse);
+    GetDirectQueryResourcesActionResponse response =
+        new GetDirectQueryResourcesActionResponse(successResponse);
 
     Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
-    Map<String, String> requestParams = Map.of(
-        "dataSource", "testDataSource",
-        "resourceType", "testResourceType",
-        "resourceName", "testResourceName",
-        "mockParamKey1", "mockParamVal1",
-        "mockParamKey2", "mockParamVal2"
-    );
-    Mockito.when(request.param(Mockito.anyString())).thenAnswer(i -> requestParams.get(i.getArgument(0)));
-    Mockito.when(request.consumedParams()).thenReturn(List.of("dataSource", "resourceType", "resourceName"));
+    Map<String, String> requestParams =
+        Map.of(
+            "dataSource", "testDataSource",
+            "resourceType", "testResourceType",
+            "resourceName", "testResourceName",
+            "mockParamKey1", "mockParamVal1",
+            "mockParamKey2", "mockParamVal2");
+    Mockito.when(request.param(Mockito.anyString()))
+        .thenAnswer(i -> requestParams.get(i.getArgument(0)));
+    Mockito.when(request.consumedParams())
+        .thenReturn(List.of("dataSource", "resourceType", "resourceName"));
     Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
 
-    ArgumentCaptor<ActionListener> listenerCaptor =
-        ArgumentCaptor.forClass(ActionListener.class);
+    ArgumentCaptor<ActionListener> listenerCaptor = ArgumentCaptor.forClass(ActionListener.class);
 
-    Mockito.doAnswer(invocation -> {
-      Runnable runnable = invocation.getArgument(0);
-      runnable.run();
-      return null;
-    }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+    Mockito.doAnswer(
+            invocation -> {
+              Runnable runnable = invocation.getArgument(0);
+              runnable.run();
+              return null;
+            })
+        .when(threadPool)
+        .schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+    Mockito.doAnswer(
+            invocation -> {
+              Runnable runnable = invocation.getArgument(0);
+              runnable.run();
+              return null;
+            })
+        .when(threadPool)
+        .schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
 
-    Mockito.doAnswer(invocation -> {
-      GetDirectQueryResourcesActionRequest request = invocation.getArgument(1);
-      Assertions.assertEquals("testDataSource", request.getDirectQueryRequest().getDataSource());
-      Assertions.assertEquals("testResourceType", request.getDirectQueryRequest().getResourceType());
-      Assertions.assertEquals("testResourceName", request.getDirectQueryRequest().getResourceName());
-      Assertions.assertEquals(Map.of(
-          "mockParamKey1", "mockParamVal1",
-          "mockParamKey2", "mockParamVal2"
-      ), request.getDirectQueryRequest().getQueryParams());
-      return null;
-    }).when(nodeClient).execute(
-        Mockito.any(),
-        Mockito.any(),
-        listenerCaptor.capture());
+    Mockito.doAnswer(
+            invocation -> {
+              GetDirectQueryResourcesActionRequest request = invocation.getArgument(1);
+              Assertions.assertEquals(
+                  "testDataSource", request.getDirectQueryRequest().getDataSource());
+              Assertions.assertEquals(
+                  "testResourceType", request.getDirectQueryRequest().getResourceType());
+              Assertions.assertEquals(
+                  "testResourceName", request.getDirectQueryRequest().getResourceName());
+              Assertions.assertEquals(
+                  Map.of(
+                      "mockParamKey1", "mockParamVal1",
+                      "mockParamKey2", "mockParamVal2"),
+                  request.getDirectQueryRequest().getQueryParams());
+              return null;
+            })
+        .when(nodeClient)
+        .execute(Mockito.any(), Mockito.any(), listenerCaptor.capture());
 
     unit.handleRequest(request, channel, nodeClient);
 
@@ -196,7 +219,8 @@ public class RestDirectQueryResourcesManagementActionTest {
   @Test
   @SneakyThrows
   public void testBadRequestResponse() {
-    IllegalArgumentException clientError = new IllegalArgumentException("Invalid request parameter");
+    IllegalArgumentException clientError =
+        new IllegalArgumentException("Invalid request parameter");
 
     ActionListener listener = makeRequest();
     listener.onFailure(clientError);
@@ -211,10 +235,11 @@ public class RestDirectQueryResourcesManagementActionTest {
         new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
     Assertions.assertEquals(400, actualResponseJson.get("status").getAsInt());
     Assertions.assertTrue(actualResponseJson.has("error"));
-    Assertions.assertEquals("IllegalArgumentException",
+    Assertions.assertEquals(
+        "IllegalArgumentException",
         actualResponseJson.getAsJsonObject("error").get("type").getAsString());
-    Assertions.assertEquals("Invalid Request",
-        actualResponseJson.getAsJsonObject("error").get("reason").getAsString());
+    Assertions.assertEquals(
+        "Invalid Request", actualResponseJson.getAsJsonObject("error").get("reason").getAsString());
   }
 
   @Test
@@ -235,9 +260,10 @@ public class RestDirectQueryResourcesManagementActionTest {
         new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
     Assertions.assertEquals(500, actualResponseJson.get("status").getAsInt());
     Assertions.assertTrue(actualResponseJson.has("error"));
-    Assertions.assertEquals("RuntimeException",
-        actualResponseJson.getAsJsonObject("error").get("type").getAsString());
-    Assertions.assertEquals("There was internal problem at backend",
+    Assertions.assertEquals(
+        "RuntimeException", actualResponseJson.getAsJsonObject("error").get("type").getAsString());
+    Assertions.assertEquals(
+        "There was internal problem at backend",
         actualResponseJson.getAsJsonObject("error").get("reason").getAsString());
   }
 
@@ -259,9 +285,11 @@ public class RestDirectQueryResourcesManagementActionTest {
         new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
     Assertions.assertEquals(500, actualResponseJson.get("status").getAsInt());
     Assertions.assertTrue(actualResponseJson.has("error"));
-    Assertions.assertEquals("OpenSearchException",
+    Assertions.assertEquals(
+        "OpenSearchException",
         actualResponseJson.getAsJsonObject("error").get("type").getAsString());
-    Assertions.assertEquals("OpenSearch specific error",
+    Assertions.assertEquals(
+        "OpenSearch specific error",
         actualResponseJson.getAsJsonObject("error").get("details").getAsString());
   }
 
@@ -283,10 +311,11 @@ public class RestDirectQueryResourcesManagementActionTest {
         new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
     Assertions.assertEquals(400, actualResponseJson.get("status").getAsInt());
     Assertions.assertTrue(actualResponseJson.has("error"));
-    Assertions.assertEquals("IllegalStateException",
+    Assertions.assertEquals(
+        "IllegalStateException",
         actualResponseJson.getAsJsonObject("error").get("type").getAsString());
-    Assertions.assertEquals("Illegal state",
-        actualResponseJson.getAsJsonObject("error").get("details").getAsString());
+    Assertions.assertEquals(
+        "Illegal state", actualResponseJson.getAsJsonObject("error").get("details").getAsString());
   }
 
   @Test
@@ -307,16 +336,18 @@ public class RestDirectQueryResourcesManagementActionTest {
         new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
     Assertions.assertEquals(400, actualResponseJson.get("status").getAsInt());
     Assertions.assertTrue(actualResponseJson.has("error"));
-    Assertions.assertEquals("IllegalAccessException",
+    Assertions.assertEquals(
+        "IllegalAccessException",
         actualResponseJson.getAsJsonObject("error").get("type").getAsString());
-    Assertions.assertEquals("Illegal access",
-        actualResponseJson.getAsJsonObject("error").get("details").getAsString());
+    Assertions.assertEquals(
+        "Illegal access", actualResponseJson.getAsJsonObject("error").get("details").getAsString());
   }
 
   @Test
   @SneakyThrows
   public void testDataSourceClientException() {
-    DataSourceClientException dataSourceClientException = new DataSourceClientException("Data source client error");
+    DataSourceClientException dataSourceClientException =
+        new DataSourceClientException("Data source client error");
 
     ActionListener listener = makeRequest();
     listener.onFailure(dataSourceClientException);
@@ -331,9 +362,11 @@ public class RestDirectQueryResourcesManagementActionTest {
         new Gson().fromJson(capturedResponse.content().utf8ToString(), JsonObject.class);
     Assertions.assertEquals(400, actualResponseJson.get("status").getAsInt());
     Assertions.assertTrue(actualResponseJson.has("error"));
-    Assertions.assertEquals("DataSourceClientException",
+    Assertions.assertEquals(
+        "DataSourceClientException",
         actualResponseJson.getAsJsonObject("error").get("type").getAsString());
-    Assertions.assertEquals("Data source client error",
+    Assertions.assertEquals(
+        "Data source client error",
         actualResponseJson.getAsJsonObject("error").get("details").getAsString());
   }
 
@@ -345,27 +378,29 @@ public class RestDirectQueryResourcesManagementActionTest {
   private ActionListener makeRequest() {
     setDataSourcesEnabled(true);
     Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
-    Map<String, String> requestParams = Map.of(
-        "dataSource", "testDataSource",
-        "resourceType", "testResourceType"
-    );
-    Mockito.when(request.param(Mockito.anyString())).thenAnswer(i -> requestParams.get(i.getArgument(0)));
+    Map<String, String> requestParams =
+        Map.of(
+            "dataSource", "testDataSource",
+            "resourceType", "testResourceType");
+    Mockito.when(request.param(Mockito.anyString()))
+        .thenAnswer(i -> requestParams.get(i.getArgument(0)));
     Mockito.when(request.consumedParams()).thenReturn(List.of("dataSource", "resourceType"));
     Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
 
-    ArgumentCaptor<ActionListener> listenerCaptor =
-        ArgumentCaptor.forClass(ActionListener.class);
+    ArgumentCaptor<ActionListener> listenerCaptor = ArgumentCaptor.forClass(ActionListener.class);
 
-    Mockito.doAnswer(invocation -> {
-      Runnable runnable = invocation.getArgument(0);
-      runnable.run();
-      return null;
-    }).when(threadPool).schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+    Mockito.doAnswer(
+            invocation -> {
+              Runnable runnable = invocation.getArgument(0);
+              runnable.run();
+              return null;
+            })
+        .when(threadPool)
+        .schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
 
-    Mockito.doAnswer(invocation -> null).when(nodeClient).execute(
-        Mockito.any(),
-        Mockito.any(),
-        listenerCaptor.capture());
+    Mockito.doAnswer(invocation -> null)
+        .when(nodeClient)
+        .execute(Mockito.any(), Mockito.any(), listenerCaptor.capture());
 
     unit.handleRequest(request, channel, nodeClient);
 

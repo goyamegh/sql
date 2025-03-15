@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.directquery.transport.config;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -17,21 +19,15 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.directquery.DirectQueryExecutorService;
 import org.opensearch.transport.client.node.NodeClient;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 @ExtendWith(MockitoExtension.class)
 public class DirectQueryModuleTest {
-  @Mock
-  private NodeClient nodeClient;
+  @Mock private NodeClient nodeClient;
 
-  @Mock
-  private ClusterService clusterService;
+  @Mock private ClusterService clusterService;
 
-  @Mock
-  private Settings settings;
+  @Mock private Settings settings;
 
-  @Mock
-  private DataSourceService dataSourceService;
+  @Mock private DataSourceService dataSourceService;
 
   @Test
   public void testAsyncQueryExecutorService() {

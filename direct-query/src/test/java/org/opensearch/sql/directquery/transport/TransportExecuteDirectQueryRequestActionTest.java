@@ -50,10 +50,13 @@ public class TransportExecuteDirectQueryRequestActionTest {
 
   @Test
   public void testDoExecuteSuccess() {
-    // Prepare mock response
+    // Prepare mock response with valid data
     ExecuteDirectQueryResponse mockResponse = new ExecuteDirectQueryResponse();
     mockResponse.setQueryId("test-query-id");
     mockResponse.setSessionId("test-session-id");
+    mockResponse.setResult(
+        "{\"data\":{\"resultType\":\"vector\",\"result\":[]}}"); // Valid Prometheus JSON
+    mockResponse.setDataSourceType("prometheus");
 
     when(mockExecutorService.executeDirectQuery(any(ExecuteDirectQueryRequest.class)))
         .thenReturn(mockResponse);

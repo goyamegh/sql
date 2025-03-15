@@ -9,8 +9,10 @@ import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -34,6 +36,7 @@ import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionRe
 import org.opensearch.sql.directquery.validator.DirectQueryRequestValidator;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.util.RestRequestUtil;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.transport.client.node.NodeClient;
 
 @RequiredArgsConstructor
@@ -44,6 +47,7 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
       "/_plugins/_directquery/_query/{dataSources}";
 
   private static final Logger LOG = LogManager.getLogger(RestDirectQueryManagementAction.class);
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final OpenSearchSettings settings;
 
   @Override
@@ -106,11 +110,17 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
                     new ActionListener<>() {
                       @Override
                       public void onResponse(ExecuteDirectQueryActionResponse response) {
-                        restChannel.sendResponse(
-                            new BytesRestResponse(
-                                RestStatus.OK,
-                                "application/json; charset=UTF-8",
-                                response.getResult()));
+                        // Format the response here at the REST layer using JsonResponseFormatter
+                        try {
+                          String formattedResponse = formatDirectQueryResponse(response);
+                          restChannel.sendResponse(
+                              new BytesRestResponse(
+                                  RestStatus.OK,
+                                  "application/json; charset=UTF-8",
+                                  formattedResponse));
+                        } catch (Exception e) {
+                          handleException(e, restChannel, restRequest.method());
+                        }
                       }
 
                       @Override
@@ -122,6 +132,50 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
         handleException(e, restChannel, restRequest.method());
       }
     };
+  }
+
+  /** Format the direct query response using JsonResponseFormatter */
+  private String formatDirectQueryResponse(ExecuteDirectQueryActionResponse response) {
+    try {
+      // Create a formatter that converts the response to a pretty JSON format
+      return new JsonResponseFormatter<ExecuteDirectQueryActionResponse>(
+          JsonResponseFormatter.Style.PRETTY) {
+        @Override
+        protected Object buildJsonObject(ExecuteDirectQueryActionResponse response) {
+          // Create a response object with the fields we want to expose
+          return new DirectQueryResult(
+              response.getQueryId(), response.getResults(), response.getSessionId());
+        }
+      }.format(response);
+    } catch (Exception e) {
+      LOG.error("Error formatting direct query response", e);
+      return "{\"error\": \"" + e.getMessage() + "\"}";
+    }
+  }
+
+  /** Simple class to represent the formatted response */
+  private static class DirectQueryResult {
+    private final String queryId;
+    private final Map<String, Object> results;
+    private final String sessionId;
+
+    public DirectQueryResult(String queryId, Map<String, ?> results, String sessionId) {
+      this.queryId = queryId;
+      this.results = (Map<String, Object>) results;
+      this.sessionId = sessionId;
+    }
+
+    public String getQueryId() {
+      return queryId;
+    }
+
+    public Map<String, Object> getResults() {
+      return results;
+    }
+
+    public String getSessionId() {
+      return sessionId;
+    }
   }
 
   private void handleException(

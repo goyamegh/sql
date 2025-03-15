@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasource.query.QueryHandler;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
@@ -73,6 +74,8 @@ public class DirectQueryExecutorServiceImplTest {
     request.setPrometheusOptions(options);
 
     when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
+    when(dataSourceClientFactory.getDataSourceType(dataSource))
+        .thenReturn(DataSourceType.PROMETHEUS);
     when(queryHandlerRegistry.getQueryHandler(prometheusClient))
         .thenReturn(Optional.of(queryHandler));
 
@@ -100,6 +103,8 @@ public class DirectQueryExecutorServiceImplTest {
     request.setQuery(query);
 
     when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
+    when(dataSourceClientFactory.getDataSourceType(dataSource))
+        .thenReturn(DataSourceType.PROMETHEUS);
     when(queryHandlerRegistry.getQueryHandler(prometheusClient)).thenReturn(Optional.empty());
 
     // Test
@@ -123,6 +128,8 @@ public class DirectQueryExecutorServiceImplTest {
     request.setDataSources(dataSource);
     request.setQuery(query);
 
+    when(dataSourceClientFactory.getDataSourceType(dataSource))
+        .thenReturn(DataSourceType.PROMETHEUS);
     when(dataSourceClientFactory.createClient(dataSource))
         .thenThrow(new DataSourceClientException("Failed to create client"));
 
@@ -148,6 +155,8 @@ public class DirectQueryExecutorServiceImplTest {
     request.setQuery(query);
 
     when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
+    when(dataSourceClientFactory.getDataSourceType(dataSource))
+        .thenReturn(DataSourceType.PROMETHEUS);
     when(queryHandlerRegistry.getQueryHandler(prometheusClient))
         .thenReturn(Optional.of(queryHandler));
     when(queryHandler.executeQuery(eq(prometheusClient), eq(request)))
@@ -262,6 +271,8 @@ public class DirectQueryExecutorServiceImplTest {
     request.setQuery(query);
 
     when(dataSourceClientFactory.createClient(dataSource)).thenReturn(null);
+    when(dataSourceClientFactory.getDataSourceType(dataSource))
+        .thenReturn(DataSourceType.PROMETHEUS);
 
     // Test
     ExecuteDirectQueryResponse response = executorService.executeDirectQuery(request);
