@@ -18,6 +18,7 @@ import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 
 public class PrometheusClientUtils {
+  private PrometheusClientUtils() {}
 
   public static final String AUTH_TYPE = "prometheus.auth.type";
   public static final String USERNAME = "prometheus.auth.username";

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.datasource.client;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -252,5 +253,37 @@ public class DataSourceClientFactoryTest {
     // Test with Object return type
     Object genericClient = dataSourceClientFactory.createClient(prometheusDs);
     assertTrue(genericClient instanceof PrometheusClient);
+  }
+
+  @Test
+  public void testGetDataSourceTypeSuccessful() {
+    // Setup
+    String dataSourceName = "prometheusDataSource";
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName(dataSourceName)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .build();
+
+    when(dataSourceService.dataSourceExists(dataSourceName)).thenReturn(true);
+    when(dataSourceService.getDataSourceMetadata(dataSourceName)).thenReturn(metadata);
+
+    // Test
+    DataSourceType dataSourceType = dataSourceClientFactory.getDataSourceType(dataSourceName);
+
+    // Verify
+    assertEquals(DataSourceType.PROMETHEUS, dataSourceType);
+    verify(dataSourceService).dataSourceExists(dataSourceName);
+    verify(dataSourceService).getDataSourceMetadata(dataSourceName);
+  }
+
+  @Test(expected = DataSourceClientException.class)
+  public void testGetDataSourceTypeForNonexistentDataSource() {
+    // Setup
+    String dataSourceName = "nonExistent";
+    when(dataSourceService.dataSourceExists(dataSourceName)).thenReturn(false);
+
+    // Test - should throw exception
+    dataSourceClientFactory.getDataSourceType(dataSourceName);
   }
 }
