@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.directquery.rest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -175,27 +177,14 @@ public class RestDirectQueryManagementActionTest {
   @Test
   @SneakyThrows
   public void testSuccessfulResponse() {
-    // Create mock data source result (PrometheusResult in this case)
-    PrometheusResult mockPrometheusResult = Mockito.mock(PrometheusResult.class);
+    PrometheusResult prometheusResult = new PrometheusResult();
+    prometheusResult.setStatus("success");
 
-    // Create map of results as would be returned by getResults()
     Map<String, DataSourceResult> resultsMap = new HashMap<>();
-    resultsMap.put("testDataSource", mockPrometheusResult);
+    resultsMap.put("testDataSource", prometheusResult);
 
-    // Create mock response with the results map
     ExecuteDirectQueryActionResponse response =
-        Mockito.mock(ExecuteDirectQueryActionResponse.class);
-    Mockito.when(response.getResults()).thenReturn(resultsMap);
-
-    // Create expected JSON that would be produced in the REST action
-    String expectedJson = "{\"testDataSource\":{}}"; // Simple representation
-
-    // Mock ObjectMapper behavior in RestDirectQueryManagementAction
-    ObjectMapper mockMapper = Mockito.mock(ObjectMapper.class);
-    Mockito.when(mockMapper.writeValueAsString(resultsMap)).thenReturn(expectedJson);
-
-    // We need to modify the REST action class to use this mapper or set it in a field
-    // For test purposes, we assume the REST action will convert results map to JSON
+        new ExecuteDirectQueryActionResponse("test-query-id", resultsMap, "test-session-id");
 
     ActionListener listener =
         makeRequest(
@@ -209,8 +198,44 @@ public class RestDirectQueryManagementActionTest {
     Assertions.assertEquals(200, capturedResponse.status().getStatus());
     Assertions.assertEquals("application/json; charset=UTF-8", capturedResponse.contentType());
 
-    // The actual validation depends on how the REST action converts response to JSON
-    // If we know the exact format, we can test that directly
+    String responseContent = capturedResponse.content().utf8ToString();
+    assertThat(responseContent, containsString("queryId"));
+    assertThat(responseContent, containsString("test-query-id"));
+    assertThat(responseContent, containsString("sessionId"));
+    assertThat(responseContent, containsString("test-session-id"));
+    assertThat(responseContent, containsString("\"status\": \"success\""));
+  }
+
+  @Test
+  @SneakyThrows
+  public void testFormatDirectQueryResponseError() {
+    // this fails and triggers format error because mocked class can't be serialized
+    PrometheusResult mockPrometheusResult = Mockito.mock(PrometheusResult.class);
+
+    Map<String, DataSourceResult> resultsMap = new HashMap<>();
+    resultsMap.put("testDataSource", mockPrometheusResult);
+
+    ExecuteDirectQueryActionResponse response =
+        Mockito.mock(ExecuteDirectQueryActionResponse.class);
+    Mockito.when(response.getResults()).thenReturn(resultsMap);
+
+    String expectedJson = "{\"testDataSource\":{}}"; // Simple representation
+
+    ObjectMapper mockMapper = Mockito.mock(ObjectMapper.class);
+    Mockito.when(mockMapper.writeValueAsString(resultsMap)).thenReturn(expectedJson);
+
+    ActionListener listener =
+        makeRequest(
+            "{\"query\":\"up\",\"language\":\"promql\",\"options\":{\"queryType\":\"instant\",\"time\":\"1609459200\"},\"datasource\":\"mock-datasource\",\"sessionId\":\"mock-session\"}");
+    listener.onResponse(response);
+
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(200, capturedResponse.status().getStatus());
+    Assertions.assertEquals("application/json; charset=UTF-8", capturedResponse.contentType());
+    assertThat(capturedResponse.content().utf8ToString(), containsString("\"error\""));
   }
 
   @Test

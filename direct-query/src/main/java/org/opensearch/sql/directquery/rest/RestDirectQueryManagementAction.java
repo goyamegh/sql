@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -111,16 +112,12 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
                       @Override
                       public void onResponse(ExecuteDirectQueryActionResponse response) {
                         // Format the response here at the REST layer using JsonResponseFormatter
-                        try {
-                          String formattedResponse = formatDirectQueryResponse(response);
-                          restChannel.sendResponse(
-                              new BytesRestResponse(
-                                  RestStatus.OK,
-                                  "application/json; charset=UTF-8",
-                                  formattedResponse));
-                        } catch (Exception e) {
-                          handleException(e, restChannel, restRequest.method());
-                        }
+                        String formattedResponse = formatDirectQueryResponse(response);
+                        restChannel.sendResponse(
+                            new BytesRestResponse(
+                                RestStatus.OK,
+                                "application/json; charset=UTF-8",
+                                formattedResponse));
                       }
 
                       @Override
@@ -154,6 +151,7 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
   }
 
   /** Simple class to represent the formatted response */
+  @Getter
   private static class DirectQueryResult {
     private final String queryId;
     private final Map<String, Object> results;
@@ -163,18 +161,6 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
       this.queryId = queryId;
       this.results = (Map<String, Object>) results;
       this.sessionId = sessionId;
-    }
-
-    public String getQueryId() {
-      return queryId;
-    }
-
-    public Map<String, Object> getResults() {
-      return results;
-    }
-
-    public String getSessionId() {
-      return sessionId;
     }
   }
 
