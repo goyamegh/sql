@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.datasource.client.DataSourceClient;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -94,8 +95,8 @@ public class QueryHandlerRegistryTest {
   void should_handle_class_cast_exception_gracefully() {
     // Setup - create a handler with incompatible client class
     @SuppressWarnings("unchecked")
-    QueryHandler<String> badHandler = mock(QueryHandler.class);
-    when(badHandler.getClientClass()).thenReturn((Class) String.class);
+    QueryHandler<IncompatibleDataSourceClient> badHandler = mock(QueryHandler.class);
+    when(badHandler.getClientClass()).thenReturn((Class) IncompatibleDataSourceClient.class);
 
     // Setup regular handler
     when(mockHandler1.getClientClass()).thenReturn(TestClient.class);
@@ -138,7 +139,9 @@ public class QueryHandlerRegistryTest {
   }
 
   // Test client classes
-  private static class TestClient {}
+  private static class TestClient implements DataSourceClient {}
 
-  private static class AnotherTestClient {}
+  private static class AnotherTestClient implements DataSourceClient {}
+
+  private static class IncompatibleDataSourceClient implements DataSourceClient {}
 }

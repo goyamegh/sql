@@ -8,6 +8,7 @@ package org.opensearch.sql.directquery;
 import java.io.IOException;
 import java.util.UUID;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.sql.datasource.client.DataSourceClient;
 import org.opensearch.sql.datasource.client.DataSourceClientFactory;
 import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
@@ -38,14 +39,11 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
     String result;
 
     try {
-      // Get data source type before creating the client
       dataSourceType =
           dataSourceClientFactory.getDataSourceType(dataSourceName).name().toLowerCase();
 
-      // Let Java infer the type
-      var client = dataSourceClientFactory.createClient(dataSourceName);
+      DataSourceClient client = dataSourceClientFactory.createClient(dataSourceName);
 
-      // No need to specify Object type parameter, let the registry infer it
       result =
           queryHandlerRegistry
               .getQueryHandler(client)
@@ -63,14 +61,13 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
       result = "{\"error\": \"" + e.getMessage() + "\"}";
     }
 
-    // Pass the data source type along with the result
     return new ExecuteDirectQueryResponse(queryId, result, sessionId, dataSourceType);
   }
 
   @Override
   public GetDirectQueryResourcesResponse<?> getDirectQueryResources(
       GetDirectQueryResourcesRequest request) {
-    var client = dataSourceClientFactory.createClient(request.getDataSource());
+    DataSourceClient client = dataSourceClientFactory.createClient(request.getDataSource());
     return queryHandlerRegistry
         .getQueryHandler(client)
         .map(

@@ -8,6 +8,7 @@ package org.opensearch.sql.datasource.query;
 import java.util.List;
 import java.util.Optional;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.sql.datasource.client.DataSourceClient;
 
 /** Registry for all query handlers. */
 public class QueryHandlerRegistry {
@@ -23,11 +24,11 @@ public class QueryHandlerRegistry {
    * Finds a handler that can process the given client.
    *
    * @param client The client to find a handler for
-   * @param <T> The type of client
+   * @param <T> The type of client, extending DataSourceClient
    * @return An optional containing the handler if found
    */
   @SuppressWarnings("unchecked")
-  public <T> Optional<QueryHandler<T>> getQueryHandler(T client) {
+  public <T extends DataSourceClient> Optional<QueryHandler<T>> getQueryHandler(T client) {
     return handlers.stream()
         .filter(
             handler -> {

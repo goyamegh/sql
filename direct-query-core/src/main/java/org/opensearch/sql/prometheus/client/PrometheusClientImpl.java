@@ -92,14 +92,7 @@ public class PrometheusClientImpl implements PrometheusClient {
       params.put("timeout", timeout.toString());
     }
 
-    String queryString =
-        params.entrySet().stream()
-            .map(
-                entry ->
-                    URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8)
-                        + "="
-                        + URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
-            .collect(Collectors.joining("&"));
+    String queryString = this.paramsToQueryString(params);
 
     String queryUrl =
         String.format("%s/api/v1/query?%s", uri.toString().replaceAll("/$", ""), queryString);
@@ -277,12 +270,6 @@ public class PrometheusClientImpl implements PrometheusClient {
       params.put("timeout", timeout.toString());
     }
 
-    return params.entrySet().stream()
-        .map(
-            entry ->
-                URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8)
-                    + "="
-                    + URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
-        .collect(Collectors.joining("&"));
+    return this.paramsToQueryString(params);
   }
 }

@@ -9,7 +9,6 @@ import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +47,6 @@ public class RestDirectQueryManagementAction extends BaseRestHandler {
       "/_plugins/_directquery/_query/{dataSources}";
 
   private static final Logger LOG = LogManager.getLogger(RestDirectQueryManagementAction.class);
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final OpenSearchSettings settings;
 
   @Override

@@ -6,6 +6,7 @@
 package org.opensearch.sql.datasource.query;
 
 import java.io.IOException;
+import org.opensearch.sql.datasource.client.DataSourceClient;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
@@ -14,9 +15,9 @@ import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse
 /**
  * Interface for handling queries for specific data source types.
  *
- * @param <T> The client type this handler works with
+ * @param <T> The client type this handler works with, extending DataSourceClient
  */
-public interface QueryHandler<T> {
+public interface QueryHandler<T extends DataSourceClient> {
 
   /**
    * Returns the data source type this handler supports.

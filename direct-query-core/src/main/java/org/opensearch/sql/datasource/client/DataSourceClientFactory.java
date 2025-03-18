@@ -39,13 +39,14 @@ public class DataSourceClientFactory {
   /**
    * Creates a client for the specified data source with appropriate type.
    *
-   * @param <T> The type of client to create
+   * @param <T> The type of client to create, must implement DataSourceClient
    * @param dataSourceName The name of the data source
    * @return The appropriate client for the data source type
    * @throws DataSourceClientException If client creation fails
    */
   @SuppressWarnings("unchecked")
-  public <T> T createClient(String dataSourceName) throws DataSourceClientException {
+  public <T extends DataSourceClient> T createClient(String dataSourceName)
+      throws DataSourceClientException {
     try {
       if (!dataSourceService.dataSourceExists(dataSourceName)) {
         throw new DataSourceClientException("Data source does not exist: " + dataSourceName);
@@ -80,12 +81,11 @@ public class DataSourceClientFactory {
     return dataSourceService.getDataSourceMetadata(dataSourceName).getConnector();
   }
 
-  private Object createClientForType(String dataSourceType, DataSourceMetadata metadata)
+  private DataSourceClient createClientForType(String dataSourceType, DataSourceMetadata metadata)
       throws DataSourceClientException {
     switch (dataSourceType) {
       case "PROMETHEUS":
         return createPrometheusClient(metadata);
-        // Add cases for other data source types as needed
       default:
         throw new DataSourceClientException("Unsupported data source type: " + dataSourceType);
     }
