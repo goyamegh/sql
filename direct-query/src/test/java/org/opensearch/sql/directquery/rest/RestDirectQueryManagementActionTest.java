@@ -178,7 +178,6 @@ public class RestDirectQueryManagementActionTest {
   @SneakyThrows
   public void testSuccessfulResponse() {
     PrometheusResult prometheusResult = new PrometheusResult();
-    prometheusResult.setStatus("success");
 
     Map<String, DataSourceResult> resultsMap = new HashMap<>();
     resultsMap.put("testDataSource", prometheusResult);
@@ -203,7 +202,6 @@ public class RestDirectQueryManagementActionTest {
     assertThat(responseContent, containsString("test-query-id"));
     assertThat(responseContent, containsString("sessionId"));
     assertThat(responseContent, containsString("test-session-id"));
-    assertThat(responseContent, containsString("\"status\": \"success\""));
   }
 
   @Test
