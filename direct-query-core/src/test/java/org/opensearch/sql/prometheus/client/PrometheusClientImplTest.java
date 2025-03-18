@@ -68,10 +68,10 @@ public class PrometheusClientImplTest {
 
     // Verify
     assertNotNull(result);
-    assertEquals("success", result.getString("status"));
-    JSONObject data = result.getJSONObject("data");
-    assertEquals("matrix", data.getString("resultType"));
-    JSONArray resultArray = data.getJSONArray("result");
+    // assertEquals("success", result.getString("status"));
+    // JSONObject data = result.getJSONObject("data");
+    assertEquals("matrix", result.getString("resultType"));
+    JSONArray resultArray = result.getJSONArray("result");
     assertEquals(1, resultArray.length());
     JSONObject metric = resultArray.getJSONObject(0).getJSONObject("metric");
     assertEquals("up", metric.getString("__name__"));
@@ -89,10 +89,10 @@ public class PrometheusClientImplTest {
 
     // Verify
     assertNotNull(result);
-    assertEquals("success", result.getString("status"));
-    JSONObject data = result.getJSONObject("data");
-    assertEquals("matrix", data.getString("resultType"));
-    JSONArray resultArray = data.getJSONArray("result");
+    // assertEquals("success", result.getString("status"));
+    // JSONObject data = result.getJSONObject("data");
+    assertEquals("matrix", result.getString("resultType"));
+    JSONArray resultArray = result.getJSONArray("result");
     assertEquals(1, resultArray.length());
     JSONObject metric = resultArray.getJSONObject(0).getJSONObject("metric");
     assertEquals("up", metric.getString("__name__"));

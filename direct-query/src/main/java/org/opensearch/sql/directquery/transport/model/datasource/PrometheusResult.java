@@ -20,28 +20,14 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PrometheusResult implements DataSourceResult {
 
-  @JsonProperty("data")
-  private PrometheusData data;
+  @JsonProperty("resultType")
+  private String resultType;
 
-  @JsonProperty("status")
-  private String status;
+  @JsonProperty("result")
+  private List<PrometheusResultItem> result;
 
   // Required public no-args constructor for OpenSearch serialization
   public PrometheusResult() {}
-
-  @Getter
-  @Setter
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  public static class PrometheusData {
-    @JsonProperty("resultType")
-    private String resultType;
-
-    @JsonProperty("result")
-    private List<PrometheusResultItem> result;
-
-    // Required public no-args constructor for OpenSearch serialization
-    public PrometheusData() {}
-  }
 
   @Getter
   @Setter

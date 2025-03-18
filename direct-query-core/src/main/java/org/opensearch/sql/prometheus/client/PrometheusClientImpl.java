@@ -70,8 +70,9 @@ public class PrometheusClientImpl implements PrometheusClient {
     Response response = this.okHttpClient.newCall(request).execute();
 
     logger.debug("Received Prometheus response for query_range: code={}", response);
-    // Return the full response object, not just the data field
-    return readResponse(response);
+
+    JSONObject jsonObject = readResponse(response);
+    return jsonObject.getJSONObject("data");
   }
 
   @Override
