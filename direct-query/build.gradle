@@ -68,7 +68,6 @@ jacocoTestReport {
     executionData test, junit4
     reports {
         html.required = true
-        html.destination = file("${buildDir}/reports/jacoco/html")
         xml.required = true
     }
     afterEvaluate {
