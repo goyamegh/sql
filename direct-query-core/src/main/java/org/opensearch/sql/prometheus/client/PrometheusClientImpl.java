@@ -41,13 +41,15 @@ public class PrometheusClientImpl implements PrometheusClient {
   }
 
   private String paramsToQueryString(Map<String, String> queryParams) {
-    return queryParams.entrySet().stream()
-        .map(
-            entry ->
-                URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8)
-                    + "="
-                    + URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
-        .collect(Collectors.joining("&"));
+    String queryString =
+        queryParams.entrySet().stream()
+            .map(
+                entry ->
+                    URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8)
+                        + "="
+                        + URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
+            .collect(Collectors.joining("&"));
+    return queryString.isEmpty() ? "" : "?" + queryString;
   }
 
   @Override
@@ -61,7 +63,7 @@ public class PrometheusClientImpl implements PrometheusClient {
       throws IOException {
     String queryString = buildQueryString(query, start, end, step, limit, timeout);
     String queryUrl =
-        String.format("%s/api/v1/query_range?%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format("%s/api/v1/query_range%s", uri.toString().replaceAll("/$", ""), queryString);
 
     logger.debug("Making Prometheus query_range request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
@@ -95,7 +97,7 @@ public class PrometheusClientImpl implements PrometheusClient {
     String queryString = this.paramsToQueryString(params);
 
     String queryUrl =
-        String.format("%s/api/v1/query?%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format("%s/api/v1/query%s", uri.toString().replaceAll("/$", ""), queryString);
 
     logger.info("Making Prometheus instant query request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
@@ -117,7 +119,7 @@ public class PrometheusClientImpl implements PrometheusClient {
   public List<String> getLabels(Map<String, String> queryParams) throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
-        String.format("%s/api/v1/labels?%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format("%s/api/v1/labels%s", uri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.okHttpClient.newCall(request).execute();
@@ -131,7 +133,7 @@ public class PrometheusClientImpl implements PrometheusClient {
     String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
         String.format(
-            "%s/api/v1/label/%s/values?%s",
+            "%s/api/v1/label/%s/values%s",
             uri.toString().replaceAll("/$", ""), labelName, queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
@@ -145,7 +147,7 @@ public class PrometheusClientImpl implements PrometheusClient {
       throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
-        String.format("%s/api/v1/metadata?%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format("%s/api/v1/metadata%s", uri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.okHttpClient.newCall(request).execute();
@@ -163,7 +165,7 @@ public class PrometheusClientImpl implements PrometheusClient {
   public List<Map<String, String>> getSeries(Map<String, String> queryParams) throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
-        String.format("%s/api/v1/series?%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format("%s/api/v1/series%s", uri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.okHttpClient.newCall(request).execute();

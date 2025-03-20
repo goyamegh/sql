@@ -63,7 +63,9 @@ public class DataSourceServiceImpl implements DataSourceService {
   @Override
   public DataSourceMetadata getDataSourceMetadata(String dataSourceName) {
     DataSourceMetadata dataSourceMetadata = getRawDataSourceMetadata(dataSourceName);
-    return removeAuthInfo(dataSourceMetadata);
+    //    return removeAuthInfo(dataSourceMetadata);
+    // TODO workaround for prometheus client without storage engine
+    return dataSourceMetadata;
   }
 
   @Override
