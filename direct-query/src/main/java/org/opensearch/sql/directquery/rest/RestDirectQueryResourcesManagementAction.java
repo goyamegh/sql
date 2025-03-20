@@ -12,7 +12,6 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,6 +28,7 @@ import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.transport.TransportGetDirectQueryResourcesRequestAction;
+import org.opensearch.sql.directquery.transport.format.DirectQueryResourcesRequestConverter;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionRequest;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
@@ -63,7 +63,25 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
             String.format(
                 Locale.ROOT,
                 "%s/api/v1/{resourceType}/{resourceName}/values",
-                BASE_DIRECT_QUERY_RESOURCES_URL)));
+                BASE_DIRECT_QUERY_RESOURCES_URL)),
+        new Route(
+            GET,
+            String.format(
+                Locale.ROOT, "%s/alertmanager/api/v2/alerts", BASE_DIRECT_QUERY_RESOURCES_URL)),
+        new Route(
+            GET,
+            String.format(
+                Locale.ROOT,
+                "%s/alertmanager/api/v2/alerts/groups",
+                BASE_DIRECT_QUERY_RESOURCES_URL)),
+        new Route(
+            GET,
+            String.format(
+                Locale.ROOT, "%s/alertmanager/api/v2/receivers", BASE_DIRECT_QUERY_RESOURCES_URL)),
+        new Route(
+            GET,
+            String.format(
+                Locale.ROOT, "%s/alertmanager/api/v2/silences", BASE_DIRECT_QUERY_RESOURCES_URL)));
   }
 
   @Override
@@ -85,16 +103,8 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
 
   private RestChannelConsumer executeGetResourcesRequest(
       RestRequest restRequest, NodeClient nodeClient) {
-    GetDirectQueryResourcesRequest directQueryRequest = new GetDirectQueryResourcesRequest();
-    directQueryRequest.setDataSource(restRequest.param("dataSource"));
-    directQueryRequest.setResourceType(restRequest.param("resourceType"));
-    if (restRequest.param("resourceName") != null) {
-      directQueryRequest.setResourceName(restRequest.param("resourceName"));
-    }
-    directQueryRequest.setQueryParams(
-        restRequest.params().keySet().stream()
-            .filter(p -> !restRequest.consumedParams().contains(p))
-            .collect(Collectors.toMap(p -> p, restRequest::param)));
+    GetDirectQueryResourcesRequest directQueryRequest =
+        DirectQueryResourcesRequestConverter.fromRestRequest(restRequest);
 
     return restChannel ->
         Scheduler.schedule(

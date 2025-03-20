@@ -7,6 +7,7 @@ package org.opensearch.sql.datasource.client;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,8 +23,6 @@ import org.opensearch.sql.prometheus.utils.PrometheusClientUtils;
 
 /** Factory for creating data source clients based on the data source type. */
 public class DataSourceClientFactory {
-
-  public static final String URI = "prometheus.uri";
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -93,17 +92,43 @@ public class DataSourceClientFactory {
 
   private PrometheusClient createPrometheusClient(DataSourceMetadata metadata) {
     try {
-      // replace this with validate properties in PrometheusStorageFactory
-      String host = metadata.getProperties().get(URI);
+      // Validate and get Prometheus URI
+      String host = metadata.getProperties().get(PrometheusClientUtils.URI);
       if (Objects.isNull(host)) {
         throw new DataSourceClientException("Host is required for Prometheus data source");
       }
-
       URI uri = new URI(host);
-      return new PrometheusClientImpl(
-          PrometheusClientUtils.getHttpClient(metadata.getProperties(), settings), uri);
+
+      // Get Prometheus HTTP client
+      var properties = metadata.getProperties();
+      var prometheusHttpClient = PrometheusClientUtils.getHttpClient(properties, settings);
+
+      // Check for Alertmanager configuration
+      if (PrometheusClientUtils.hasAlertManagerConfig(properties)) {
+        String alertmanagerHost = properties.get(PrometheusClientUtils.ALERTMANAGER_URI);
+        URI alertmanagerUri = new URI(alertmanagerHost);
+
+        // Get AlertManager properties and create client
+        Map<String, String> alertmanagerProperties =
+            PrometheusClientUtils.createAlertManagerProperties(properties);
+
+        if (!alertmanagerProperties.isEmpty()) {
+          // Create Alertmanager HTTP client with separate auth
+          var alertmanagerHttpClient =
+              PrometheusClientUtils.getHttpClient(alertmanagerProperties, settings);
+          return new PrometheusClientImpl(
+              prometheusHttpClient, uri, alertmanagerHttpClient, alertmanagerUri);
+        }
+
+        // Use same auth but different URI
+        return new PrometheusClientImpl(
+            prometheusHttpClient, uri, prometheusHttpClient, alertmanagerUri);
+      }
+
+      // Use standard client configuration
+      return new PrometheusClientImpl(prometheusHttpClient, uri);
     } catch (URISyntaxException e) {
-      throw new DataSourceClientException("Invalid Prometheus URI", e);
+      throw new DataSourceClientException("Invalid URI", e);
     }
   }
 }

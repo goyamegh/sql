@@ -32,12 +32,27 @@ public class PrometheusClientImpl implements PrometheusClient {
   private static final Logger logger = LogManager.getLogger(PrometheusClientImpl.class);
 
   private final OkHttpClient okHttpClient;
+  private final OkHttpClient alertmanagerHttpClient; // Separate client for Alertmanager
 
   private final URI uri;
+  private final URI alertmanagerUri; // Separate URI for Alertmanager
 
   public PrometheusClientImpl(OkHttpClient okHttpClient, URI uri) {
     this.okHttpClient = okHttpClient;
     this.uri = uri;
+    this.alertmanagerHttpClient = okHttpClient; // Use same client for backwards compatibility
+    this.alertmanagerUri = uri; // Use same URI for backwards compatibility
+  }
+
+  public PrometheusClientImpl(
+      OkHttpClient okHttpClient,
+      URI uri,
+      OkHttpClient alertmanagerHttpClient,
+      URI alertmanagerUri) {
+    this.okHttpClient = okHttpClient;
+    this.uri = uri;
+    this.alertmanagerHttpClient = alertmanagerHttpClient;
+    this.alertmanagerUri = alertmanagerUri;
   }
 
   private String paramsToQueryString(Map<String, String> queryParams) {
@@ -188,6 +203,139 @@ public class PrometheusClientImpl implements PrometheusClient {
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONArray("data");
+  }
+
+  @Override
+  public JSONObject getAlerts() throws IOException {
+    String queryUrl = String.format("%s/api/v1/alerts", uri.toString().replaceAll("/$", ""));
+    logger.debug("Making Prometheus alerts request: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response = this.okHttpClient.newCall(request).execute();
+    JSONObject jsonObject = readResponse(response);
+    return jsonObject.getJSONObject("data");
+  }
+
+  @Override
+  public JSONObject getRules(Map<String, String> queryParams) throws IOException {
+    String queryString = this.paramsToQueryString(queryParams);
+    String queryUrl =
+        String.format("%s/api/v1/rules%s", uri.toString().replaceAll("/$", ""), queryString);
+    logger.debug("Making Prometheus rules request: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response = this.okHttpClient.newCall(request).execute();
+    JSONObject jsonObject = readResponse(response);
+    return jsonObject.getJSONObject("data");
+  }
+
+  @Override
+  public JSONArray getAlertmanagerAlerts(Map<String, String> queryParams) throws IOException {
+    String queryString = this.paramsToQueryString(queryParams);
+
+    // Use dedicated alertmanager URI if available, or fall back to default with path
+    String baseUrl;
+    if (alertmanagerUri != null && !alertmanagerUri.toString().equals(uri.toString())) {
+      // Use dedicated Alertmanager endpoint
+      baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
+    } else {
+      // Fall back to Prometheus endpoint with alertmanager path
+      baseUrl = String.format("%s/alertmanager", uri.toString().replaceAll("/$", ""));
+    }
+
+    String queryUrl = String.format("%s/api/v2/alerts%s", baseUrl, queryString);
+    logger.debug("Making Alertmanager alerts request: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+
+    // Use dedicated alertmanager client if available, or fall back to default
+    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+
+    return readAlertmanagerResponse(response);
+  }
+
+  @Override
+  public JSONArray getAlertmanagerAlertGroups(Map<String, String> queryParams) throws IOException {
+    String queryString = this.paramsToQueryString(queryParams);
+
+    // Use dedicated alertmanager URI if available, or fall back to default with path
+    String baseUrl;
+    if (alertmanagerUri != null && !alertmanagerUri.toString().equals(uri.toString())) {
+      // Use dedicated Alertmanager endpoint
+      baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
+    } else {
+      // Fall back to Prometheus endpoint with alertmanager path
+      baseUrl = String.format("%s/alertmanager", uri.toString().replaceAll("/$", ""));
+    }
+
+    String queryUrl = String.format("%s/api/v2/alerts/groups%s", baseUrl, queryString);
+    logger.debug("Making Alertmanager alert groups request: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+
+    return readAlertmanagerResponse(response);
+  }
+
+  @Override
+  public JSONArray getAlertmanagerReceivers() throws IOException {
+    // Use dedicated alertmanager URI if available, or fall back to default with path
+    String baseUrl;
+    if (alertmanagerUri != null && !alertmanagerUri.toString().equals(uri.toString())) {
+      // Use dedicated Alertmanager endpoint
+      baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
+    } else {
+      // Fall back to Prometheus endpoint with alertmanager path
+      baseUrl = String.format("%s/alertmanager", uri.toString().replaceAll("/$", ""));
+    }
+
+    String queryUrl = String.format("%s/api/v2/receivers", baseUrl);
+    logger.debug("Making Alertmanager receivers request: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+
+    return readAlertmanagerResponse(response);
+  }
+
+  @Override
+  public JSONArray getAlertmanagerSilences() throws IOException {
+    // Use dedicated alertmanager URI if available, or fall back to default with path
+    String baseUrl;
+    if (alertmanagerUri != null && !alertmanagerUri.toString().equals(uri.toString())) {
+      // Use dedicated Alertmanager endpoint
+      baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
+    } else {
+      // Fall back to Prometheus endpoint with alertmanager path
+      baseUrl = String.format("%s/alertmanager", uri.toString().replaceAll("/$", ""));
+    }
+
+    String queryUrl = String.format("%s/api/v2/silences", baseUrl);
+    logger.debug("Making Alertmanager silences request: {}", queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+
+    return readAlertmanagerResponse(response);
+  }
+
+  /**
+   * Reads and processes an Alertmanager API response.
+   *
+   * @param response The HTTP response from Alertmanager
+   * @return A JSONArray with the processed response
+   * @throws IOException If there's an error reading the response
+   */
+  private JSONArray readAlertmanagerResponse(Response response) throws IOException {
+    if (response.isSuccessful()) {
+      String bodyString = Objects.requireNonNull(response.body()).string();
+      logger.debug("Alertmanager response body: {}", bodyString);
+
+      // Parse the response body directly as JSON array
+      return new JSONArray(bodyString);
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+          "Alertmanager request failed with code: {}, error body: {}", response.code(), errorBody);
+      throw new org.opensearch.sql.prometheus.exception.PrometheusClientException(
+          String.format(
+              "Alertmanager request failed with code: %s. Error details: %s",
+              response.code(), errorBody));
+    }
   }
 
   private List<String> toListOfLabels(JSONArray array) {

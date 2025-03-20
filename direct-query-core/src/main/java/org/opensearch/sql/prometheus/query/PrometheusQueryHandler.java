@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.client.DataSourceClient;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -144,13 +145,44 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
                       List<Map<String, String>> series = client.getSeries(request.getQueryParams());
                       return GetDirectQueryResourcesResponse.withList(series);
                     }
+                  case "ALERTS":
+                    {
+                      JSONObject alerts = client.getAlerts();
+                      return GetDirectQueryResourcesResponse.withMap(alerts.toMap());
+                    }
+                  case "RULES":
+                    {
+                      JSONObject rules = client.getRules(request.getQueryParams());
+                      return GetDirectQueryResourcesResponse.withMap(rules.toMap());
+                    }
+                  case "ALERTMANAGER_ALERTS":
+                    {
+                      JSONArray alerts = client.getAlertmanagerAlerts(request.getQueryParams());
+                      return GetDirectQueryResourcesResponse.withList(alerts.toList());
+                    }
+                  case "ALERTMANAGER_ALERT_GROUPS":
+                    {
+                      JSONArray alertGroups =
+                          client.getAlertmanagerAlertGroups(request.getQueryParams());
+                      return GetDirectQueryResourcesResponse.withList(alertGroups.toList());
+                    }
+                  case "ALERTMANAGER_RECEIVERS":
+                    {
+                      JSONArray receivers = client.getAlertmanagerReceivers();
+                      return GetDirectQueryResourcesResponse.withList(receivers.toList());
+                    }
+                  case "ALERTMANAGER_SILENCES":
+                    {
+                      JSONArray silences = client.getAlertmanagerSilences();
+                      return GetDirectQueryResourcesResponse.withList(silences.toList());
+                    }
                   default:
                     throw new IllegalArgumentException(
                         "Invalid resource type: " + request.getResourceType());
                 }
               } catch (IOException e) {
                 LOG.error("Error getting resources", e);
-                throw new PrometheusClientException(
+                throw new org.opensearch.sql.prometheus.exception.PrometheusClientException(
                     String.format(
                         "Error while getting resources for %s: %s",
                         request.getResourceType(), e.getMessage()));

@@ -45,4 +45,55 @@ public interface PrometheusClient extends DataSourceClient {
    * @throws IOException If there is an issue with the request
    */
   JSONObject query(String query, Long time, Integer limit, Integer timeout) throws IOException;
+
+  /**
+   * Get all alerting rules.
+   *
+   * @return JSONObject containing the alerting rules
+   * @throws IOException If there is an issue with the request
+   */
+  JSONObject getAlerts() throws IOException;
+
+  /**
+   * Get all recording and alerting rules.
+   *
+   * @param queryParams Map of query parameters to include in the request
+   * @return JSONObject containing all rules
+   * @throws IOException If there is an issue with the request
+   */
+  JSONObject getRules(Map<String, String> queryParams) throws IOException;
+
+  /**
+   * Get all alerts from Alertmanager.
+   *
+   * @param queryParams Map of query parameters to include in the request
+   * @return JSONArray containing the alerts
+   * @throws IOException If there is an issue with the request
+   */
+  JSONArray getAlertmanagerAlerts(Map<String, String> queryParams) throws IOException;
+
+  /**
+   * Get alerts grouped according to Alertmanager configuration.
+   *
+   * @param queryParams Map of query parameters to include in the request
+   * @return JSONArray containing the alert groups
+   * @throws IOException If there is an issue with the request
+   */
+  JSONArray getAlertmanagerAlertGroups(Map<String, String> queryParams) throws IOException;
+
+  /**
+   * Get all receivers configured in Alertmanager.
+   *
+   * @return JSONArray containing the receivers
+   * @throws IOException If there is an issue with the request
+   */
+  JSONArray getAlertmanagerReceivers() throws IOException;
+
+  /**
+   * Get all silences configured in Alertmanager.
+   *
+   * @return JSONArray containing the silences
+   * @throws IOException If there is an issue with the request
+   */
+  JSONArray getAlertmanagerSilences() throws IOException;
 }
