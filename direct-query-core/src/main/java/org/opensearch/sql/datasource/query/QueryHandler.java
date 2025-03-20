@@ -53,7 +53,7 @@ public interface QueryHandler<T extends DataSourceClient> {
    * @param client The client to check
    * @return true if this handler can handle the client
    */
-  boolean canHandle(T client);
+  boolean canHandle(DataSourceClient client);
 
   /**
    * Gets the client class this handler supports.

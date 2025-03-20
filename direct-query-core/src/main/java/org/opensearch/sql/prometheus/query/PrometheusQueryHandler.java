@@ -13,6 +13,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
+import org.opensearch.sql.datasource.client.DataSourceClient;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasource.query.QueryHandler;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
@@ -33,7 +34,7 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
   }
 
   @Override
-  public boolean canHandle(PrometheusClient client) {
+  public boolean canHandle(DataSourceClient client) {
     return client instanceof PrometheusClient;
   }
 
@@ -122,19 +123,27 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
 
                 switch (request.getResourceType().toUpperCase()) {
                   case "LABELS":
-                    List<String> labels = client.getLabels(request.getQueryParams());
-                    return GetDirectQueryResourcesResponse.withStringList(labels);
+                    {
+                      List<String> labels = client.getLabels(request.getQueryParams());
+                      return GetDirectQueryResourcesResponse.withStringList(labels);
+                    }
                   case "LABEL":
-                    List<String> labelValues =
-                        client.getLabel(request.getResourceName(), request.getQueryParams());
-                    return GetDirectQueryResourcesResponse.withStringList(labelValues);
+                    {
+                      List<String> labelValues =
+                          client.getLabel(request.getResourceName(), request.getQueryParams());
+                      return GetDirectQueryResourcesResponse.withStringList(labelValues);
+                    }
                   case "METADATA":
-                    Map<String, List<MetricMetadata>> metadata =
-                        client.getAllMetrics(request.getQueryParams());
-                    return GetDirectQueryResourcesResponse.withMap(metadata);
+                    {
+                      Map<String, List<MetricMetadata>> metadata =
+                          client.getAllMetrics(request.getQueryParams());
+                      return GetDirectQueryResourcesResponse.withMap(metadata);
+                    }
                   case "SERIES":
-                    List<Map<String, String>> series = client.getSeries(request.getQueryParams());
-                    return GetDirectQueryResourcesResponse.withStringMapList(series);
+                    {
+                      List<Map<String, String>> series = client.getSeries(request.getQueryParams());
+                      return GetDirectQueryResourcesResponse.withList(series);
+                    }
                   default:
                     throw new IllegalArgumentException(
                         "Invalid resource type: " + request.getResourceType());

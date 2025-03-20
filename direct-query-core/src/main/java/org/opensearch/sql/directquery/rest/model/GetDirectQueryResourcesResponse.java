@@ -30,8 +30,7 @@ public class GetDirectQueryResourcesResponse<T> {
     return new GetDirectQueryResourcesResponse<>(data);
   }
 
-  public static GetDirectQueryResourcesResponse<List<Map<String, String>>> withStringMapList(
-      List<Map<String, String>> data) {
+  public static <V> GetDirectQueryResourcesResponse<List<V>> withList(List<V> data) {
     return new GetDirectQueryResourcesResponse<>(data);
   }
 

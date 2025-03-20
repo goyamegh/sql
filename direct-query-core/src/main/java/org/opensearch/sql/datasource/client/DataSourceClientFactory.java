@@ -52,7 +52,7 @@ public class DataSourceClientFactory {
         throw new DataSourceClientException("Data source does not exist: " + dataSourceName);
       }
 
-      DataSourceMetadata metadata = dataSourceService.getDataSourceMetadata(dataSourceName);
+      DataSourceMetadata metadata = dataSourceService.verifyDataSourceAccessAndGetRawMetadata(dataSourceName, null);
       DataSourceType dataSourceType = metadata.getConnector();
 
       return (T) createClientForType(dataSourceType.name(), metadata);
