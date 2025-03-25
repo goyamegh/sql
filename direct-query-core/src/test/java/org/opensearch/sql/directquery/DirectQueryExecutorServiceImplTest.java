@@ -27,6 +27,7 @@ import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasource.query.QueryHandler;
 import org.opensearch.sql.datasource.query.QueryHandlerRegistry;
+import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
@@ -177,11 +178,10 @@ public class DirectQueryExecutorServiceImplTest {
   public void testGetDirectQueryResourcesSuccessful() throws IOException {
     // Setup
     String dataSource = "prometheusDataSource";
-    String resourceType = "LABELS";
 
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
     request.setDataSource(dataSource);
-    request.setResourceType(resourceType);
+    request.setResourceType(DirectQueryResourceType.LABELS);
 
     when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
     when(queryHandlerRegistry.getQueryHandler(prometheusClient))
@@ -212,11 +212,10 @@ public class DirectQueryExecutorServiceImplTest {
   public void testGetDirectQueryResourcesWithUnregisteredHandler() {
     // Setup
     String dataSource = "unsupportedDataSource";
-    String resourceType = "LABELS";
 
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
     request.setDataSource(dataSource);
-    request.setResourceType(resourceType);
+    request.setResourceType(DirectQueryResourceType.LABELS);
 
     when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
     when(queryHandlerRegistry.getQueryHandler(prometheusClient)).thenReturn(Optional.empty());
@@ -234,11 +233,10 @@ public class DirectQueryExecutorServiceImplTest {
   public void testGetDirectQueryResourcesWithIOError() throws IOException {
     // Setup
     String dataSource = "prometheusDataSource";
-    String resourceType = "LABELS";
 
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
     request.setDataSource(dataSource);
-    request.setResourceType(resourceType);
+    request.setResourceType(DirectQueryResourceType.LABELS);
 
     when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
     when(queryHandlerRegistry.getQueryHandler(prometheusClient))

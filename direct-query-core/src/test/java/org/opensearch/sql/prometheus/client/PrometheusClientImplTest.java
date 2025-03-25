@@ -373,6 +373,145 @@ public class PrometheusClientImplTest {
   }
 
   @Test
+  public void testGetAlerts() throws IOException {
+    // Setup
+    String successResponse =
+        "{\"status\":\"success\",\"data\":{\"alerts\":[{\"labels\":{\"alertname\":\"HighErrorRate\",\"severity\":\"critical\"},\"annotations\":{\"summary\":\"High"
+            + " request error"
+            + " rate\"},\"state\":\"firing\",\"activeAt\":\"2023-01-01T00:00:00Z\",\"value\":\"0.15\"}]}}";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    JSONObject result = client.getAlerts();
+
+    // Verify
+    assertNotNull(result);
+    assertTrue(result.has("alerts"));
+    JSONArray alerts = result.getJSONArray("alerts");
+    assertEquals(1, alerts.length());
+    JSONObject alert = alerts.getJSONObject(0);
+    assertEquals("HighErrorRate", alert.getJSONObject("labels").getString("alertname"));
+    assertEquals("critical", alert.getJSONObject("labels").getString("severity"));
+    assertEquals("firing", alert.getString("state"));
+  }
+
+  @Test
+  public void testGetRules() throws IOException {
+    // Setup
+    String successResponse =
+        "{\"status\":\"success\",\"data\":{\"groups\":[{\"name\":\"example\",\"file\":\"rules.yml\",\"rules\":[{\"name\":\"HighErrorRate\",\"query\":\"rate(http_requests_total{status=~\\\"5..\\\"}[5m])"
+            + " / rate(http_requests_total[5m]) >"
+            + " 0.1\",\"type\":\"alerting\",\"health\":\"ok\",\"state\":\"inactive\"}]}]}}";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    HashMap<String, String> params = new HashMap<>();
+    params.put("type", "alert");
+    JSONObject result = client.getRules(params);
+
+    // Verify
+    assertNotNull(result);
+    assertTrue(result.has("groups"));
+    JSONArray groups = result.getJSONArray("groups");
+    assertEquals(1, groups.length());
+    JSONObject group = groups.getJSONObject(0);
+    assertEquals("example", group.getString("name"));
+    JSONArray rules = group.getJSONArray("rules");
+    assertEquals(1, rules.length());
+    JSONObject rule = rules.getJSONObject(0);
+    assertEquals("HighErrorRate", rule.getString("name"));
+    assertEquals("alerting", rule.getString("type"));
+  }
+
+  @Test
+  public void testGetAlertmanagerAlerts() throws IOException {
+    // Setup
+    String successResponse =
+        "[{\"labels\":{\"alertname\":\"HighErrorRate\",\"severity\":\"critical\"},\"annotations\":{\"summary\":\"High"
+            + " request error"
+            + " rate\"},\"state\":\"active\",\"activeAt\":\"2023-01-01T00:00:00Z\",\"value\":\"0.15\"}]";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    HashMap<String, String> params = new HashMap<>();
+    params.put("active", "true");
+    JSONArray result = client.getAlertmanagerAlerts(params);
+
+    // Verify
+    assertNotNull(result);
+    assertEquals(1, result.length());
+    JSONObject alert = result.getJSONObject(0);
+    assertEquals("HighErrorRate", alert.getJSONObject("labels").getString("alertname"));
+    assertEquals("critical", alert.getJSONObject("labels").getString("severity"));
+    assertEquals("active", alert.getString("state"));
+  }
+
+  @Test
+  public void testGetAlertmanagerAlertGroups() throws IOException {
+    // Setup
+    String successResponse =
+        "[{\"labels\":{\"severity\":\"critical\"},\"alerts\":[{\"labels\":{\"alertname\":\"HighErrorRate\",\"severity\":\"critical\"},\"annotations\":{\"summary\":\"High"
+            + " request error rate\"},\"state\":\"active\"}]}]";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    HashMap<String, String> params = new HashMap<>();
+    params.put("active", "true");
+    JSONArray result = client.getAlertmanagerAlertGroups(params);
+
+    // Verify
+    assertNotNull(result);
+    assertEquals(1, result.length());
+    JSONObject group = result.getJSONObject(0);
+    assertEquals("critical", group.getJSONObject("labels").getString("severity"));
+    JSONArray alerts = group.getJSONArray("alerts");
+    assertEquals(1, alerts.length());
+    JSONObject alert = alerts.getJSONObject(0);
+    assertEquals("HighErrorRate", alert.getJSONObject("labels").getString("alertname"));
+  }
+
+  @Test
+  public void testGetAlertmanagerReceivers() throws IOException {
+    // Setup
+    String successResponse =
+        "[{\"name\":\"email\",\"email_configs\":[{\"to\":\"admin@example.com\"}]},{\"name\":\"slack\",\"slack_configs\":[{\"channel\":\"#alerts\"}]}]";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    JSONArray result = client.getAlertmanagerReceivers();
+
+    // Verify
+    assertNotNull(result);
+    assertEquals(2, result.length());
+    assertEquals("email", result.getJSONObject(0).getString("name"));
+    assertEquals("slack", result.getJSONObject(1).getString("name"));
+  }
+
+  @Test
+  public void testGetAlertmanagerSilences() throws IOException {
+    // Setup
+    String successResponse =
+        "[{\"id\":\"silence-123\",\"status\":{\"state\":\"active\"},\"createdBy\":\"admin\",\"comment\":\"Maintenance"
+            + " window\",\"startsAt\":\"2023-01-01T00:00:00Z\",\"endsAt\":\"2023-01-02T00:00:00Z\",\"matchers\":[{\"name\":\"severity\",\"value\":\"critical\",\"isRegex\":false}]}]";
+    mockWebServer.enqueue(new MockResponse().setBody(successResponse));
+
+    // Test
+    JSONArray result = client.getAlertmanagerSilences();
+
+    // Verify
+    assertNotNull(result);
+    assertEquals(1, result.length());
+    JSONObject silence = result.getJSONObject(0);
+    assertEquals("silence-123", silence.getString("id"));
+    assertEquals("active", silence.getJSONObject("status").getString("state"));
+    assertEquals("admin", silence.getString("createdBy"));
+    JSONArray matchers = silence.getJSONArray("matchers");
+    assertEquals(1, matchers.length());
+    assertEquals("severity", matchers.getJSONObject(0).getString("name"));
+    assertEquals("critical", matchers.getJSONObject(0).getString("value"));
+  }
+
+  @Test
   public void testReadResponseWithRequestId() throws Exception {
     // Setup
     String successResponse = "{\"status\":\"success\",\"data\":[\"job\",\"instance\"]}";
@@ -386,5 +525,54 @@ public class PrometheusClientImplTest {
     // Verify the method executed successfully
     assertNotNull(labels);
     assertEquals(2, labels.size());
+  }
+
+  @Test
+  public void testAlertmanagerResponseError() {
+    // Setup
+    mockWebServer.enqueue(new MockResponse().setResponseCode(500).setBody("Internal Server Error"));
+
+    // Test & Verify
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class, () -> client.getAlertmanagerAlerts(new HashMap<>()));
+    assertTrue(exception.getMessage().contains("Alertmanager request failed with code: 500"));
+  }
+
+  @Test
+  public void testAlertmanagerResponseErrorWithNullBody() throws IOException {
+    // Setup - Create a mock response with null body
+    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
+    Response nullBodyResponse =
+        new Response.Builder()
+            .request(dummyRequest)
+            .protocol(Protocol.HTTP_1_1)
+            .code(500)
+            .message("Internal Server Error")
+            .body(null)
+            .build();
+
+    // Create spy client that returns our custom response
+    OkHttpClient spyClient = spy(new OkHttpClient());
+    Call mockCall = mock(Call.class);
+    when(mockCall.execute()).thenReturn(nullBodyResponse);
+    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
+
+    // Create client with our spy
+    PrometheusClientImpl nullBodyClient =
+        new PrometheusClientImpl(
+            new OkHttpClient(),
+            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())),
+            spyClient,
+            URI.create(
+                String.format("http://%s:%s/alertmanager", "localhost", mockWebServer.getPort())));
+
+    // Test & Verify
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> nullBodyClient.getAlertmanagerAlerts(new HashMap<>()));
+    assertTrue(exception.getMessage().contains("Alertmanager request failed with code: 500"));
+    assertTrue(exception.getMessage().contains("No response body"));
   }
 }

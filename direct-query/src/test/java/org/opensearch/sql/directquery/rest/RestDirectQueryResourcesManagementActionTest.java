@@ -29,6 +29,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
+import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionRequest;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
@@ -86,6 +87,16 @@ public class RestDirectQueryResourcesManagementActionTest {
   public void testWhenDataSourcesAreEnabled() {
     setDataSourcesEnabled(true);
     Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
+    Mockito.when(request.path())
+        .thenReturn("/_plugins/_directquery/_resources/testDataSource/api/v1/labels");
+    Map<String, String> requestParams =
+        Map.of(
+            "dataSource", "testDataSource",
+            "resourceType", "labels");
+    Mockito.when(request.param(Mockito.anyString()))
+        .thenAnswer(i -> requestParams.get(i.getArgument(0)));
+    Mockito.when(request.consumedParams()).thenReturn(List.of("dataSource", "resourceType"));
+    Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
 
     unit.handleRequest(request, channel, nodeClient);
     Mockito.verify(threadPool, Mockito.times(1))
@@ -115,10 +126,12 @@ public class RestDirectQueryResourcesManagementActionTest {
   public void testRoutes() {
     List<RestDirectQueryResourcesManagementAction.Route> routes = unit.routes();
     Assertions.assertNotNull(routes);
-    Assertions.assertEquals(2, routes.size());
+    Assertions.assertEquals(4, routes.size());
 
     boolean foundResourceTypeRoute = false;
     boolean foundResourceValuesRoute = false;
+    boolean foundAlertmanagerResourceRoute = false;
+    boolean foundAlertmanagerAlertGroupsRoute = false;
 
     for (RestDirectQueryResourcesManagementAction.Route route : routes) {
       if (RestRequest.Method.GET.equals(route.getMethod())
@@ -141,10 +154,34 @@ public class RestDirectQueryResourcesManagementActionTest {
                       RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
         foundResourceValuesRoute = true;
       }
+      if (RestRequest.Method.GET.equals(route.getMethod())
+          && route
+              .getPath()
+              .equals(
+                  String.format(
+                      Locale.ROOT,
+                      "%s/alertmanager/api/v2/{resourceType}",
+                      RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
+        foundAlertmanagerResourceRoute = true;
+      }
+      if (RestRequest.Method.GET.equals(route.getMethod())
+          && route
+              .getPath()
+              .equals(
+                  String.format(
+                      Locale.ROOT,
+                      "%s/alertmanager/api/v2/alerts/groups",
+                      RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
+        foundAlertmanagerAlertGroupsRoute = true;
+      }
     }
 
     Assertions.assertTrue(foundResourceTypeRoute, "Resource type route not found");
     Assertions.assertTrue(foundResourceValuesRoute, "Resource values route not found");
+    Assertions.assertTrue(
+        foundAlertmanagerResourceRoute, "Alertmanager resource type route not found");
+    Assertions.assertTrue(
+        foundAlertmanagerAlertGroupsRoute, "Alertmanager alert groups route not found");
   }
 
   @Test
@@ -159,7 +196,7 @@ public class RestDirectQueryResourcesManagementActionTest {
     Map<String, String> requestParams =
         Map.of(
             "dataSource", "testDataSource",
-            "resourceType", "testResourceType",
+            "resourceType", "labels",
             "resourceName", "testResourceName",
             "mockParamKey1", "mockParamVal1",
             "mockParamKey2", "mockParamVal2");
@@ -168,6 +205,9 @@ public class RestDirectQueryResourcesManagementActionTest {
     Mockito.when(request.consumedParams())
         .thenReturn(List.of("dataSource", "resourceType", "resourceName"));
     Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
+    Mockito.when(request.path())
+        .thenReturn(
+            "/_plugins/_directquery/_resources/testDataSource/api/v1/labels/testResourceName/values");
 
     ArgumentCaptor<ActionListener> listenerCaptor = ArgumentCaptor.forClass(ActionListener.class);
 
@@ -194,7 +234,8 @@ public class RestDirectQueryResourcesManagementActionTest {
               Assertions.assertEquals(
                   "testDataSource", request.getDirectQueryRequest().getDataSource());
               Assertions.assertEquals(
-                  "testResourceType", request.getDirectQueryRequest().getResourceType());
+                  DirectQueryResourceType.LABELS,
+                  request.getDirectQueryRequest().getResourceType());
               Assertions.assertEquals(
                   "testResourceName", request.getDirectQueryRequest().getResourceName());
               Assertions.assertEquals(
@@ -386,11 +427,13 @@ public class RestDirectQueryResourcesManagementActionTest {
     Map<String, String> requestParams =
         Map.of(
             "dataSource", "testDataSource",
-            "resourceType", "testResourceType");
+            "resourceType", "labels");
     Mockito.when(request.param(Mockito.anyString()))
         .thenAnswer(i -> requestParams.get(i.getArgument(0)));
     Mockito.when(request.consumedParams()).thenReturn(List.of("dataSource", "resourceType"));
     Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
+    Mockito.when(request.path())
+        .thenReturn("/_plugins/_directquery/_resources/testDataSource/api/v1/labels");
 
     ArgumentCaptor<ActionListener> listenerCaptor = ArgumentCaptor.forClass(ActionListener.class);
 

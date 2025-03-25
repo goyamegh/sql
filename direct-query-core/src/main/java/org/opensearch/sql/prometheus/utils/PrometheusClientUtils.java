@@ -7,6 +7,7 @@ package org.opensearch.sql.prometheus.utils;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import java.net.URI;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.HashMap;
@@ -18,7 +19,11 @@ import org.opensearch.sql.common.interceptors.AwsSigningInterceptor;
 import org.opensearch.sql.common.interceptors.BasicAuthenticationInterceptor;
 import org.opensearch.sql.common.interceptors.URIValidatorInterceptor;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
+import org.opensearch.sql.prometheus.client.PrometheusClient;
+import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
 
 public class PrometheusClientUtils {
   private PrometheusClientUtils() {}
@@ -32,7 +37,7 @@ public class PrometheusClientUtils {
   public static final String SECRET_KEY = "prometheus.auth.secret_key";
 
   // Prometheus URI constant
-  public static final String URI = "prometheus.uri";
+  public static final String PROMETHEUS_URI = "prometheus.uri";
 
   // AlertManager constants
   public static final String ALERTMANAGER_URI = "alertmanager.uri";
@@ -81,12 +86,12 @@ public class PrometheusClientUtils {
   }
 
   /**
-   * Creates a properties map for AlertManager authentication based on the data source properties.
+   * Creates a properties map for Alertmanager authentication based on the data source properties.
    *
    * @param properties The data source properties
-   * @return A map containing AlertManager authentication properties
+   * @return A map containing Alertmanager authentication properties
    */
-  public static Map<String, String> createAlertManagerProperties(Map<String, String> properties) {
+  public static Map<String, String> createAlertmanagerProperties(Map<String, String> properties) {
     Map<String, String> alertmanagerProperties = new HashMap<>();
 
     if (properties.containsKey(ALERTMANAGER_AUTH_TYPE)) {
@@ -112,9 +117,53 @@ public class PrometheusClientUtils {
    * Checks if AlertManager configuration is present in the properties.
    *
    * @param properties The data source properties
-   * @return true if AlertManager URI is present, false otherwise
+   * @return true if Alertmanager URI is present, false otherwise
    */
-  public static boolean hasAlertManagerConfig(Map<String, String> properties) {
+  public static boolean hasAlertmanagerConfig(Map<String, String> properties) {
     return Objects.nonNull(properties.get(ALERTMANAGER_URI));
+  }
+
+  /**
+   * Creates a PrometheusClient instance based on the provided data source metadata and settings. If
+   * alertmanager settings are present, it creates an alertmanager client as well. Otherwise, it
+   * reuses the prometheus http client for alertmanager calls with URI to be
+   * {prometheus.url}/alertmanager.
+   *
+   * @param metadata The data source metadata
+   * @param settings The application settings
+   * @return A PrometheusClient instance
+   * @throws DataSourceClientException if the host is not provided
+   */
+  public static PrometheusClient createPrometheusClient(
+      DataSourceMetadata metadata, Settings settings) {
+    String host = metadata.getProperties().get(PrometheusClientUtils.PROMETHEUS_URI);
+    if (Objects.isNull(host)) {
+      throw new DataSourceClientException("Host is required for Prometheus data source");
+    }
+    URI uri = URI.create(host);
+
+    Map<String, String> properties = metadata.getProperties();
+    OkHttpClient prometheusHttpClient = PrometheusClientUtils.getHttpClient(properties, settings);
+
+    URI alertmanagerUri;
+    OkHttpClient alertmanagerHttpClient = prometheusHttpClient;
+
+    if (PrometheusClientUtils.hasAlertmanagerConfig(properties)) {
+      String alertmanagerHost = properties.get(PrometheusClientUtils.ALERTMANAGER_URI);
+      alertmanagerUri = URI.create(alertmanagerHost);
+
+      Map<String, String> alertmanagerProperties =
+          PrometheusClientUtils.createAlertmanagerProperties(properties);
+
+      if (!alertmanagerProperties.isEmpty()) {
+        alertmanagerHttpClient =
+            PrometheusClientUtils.getHttpClient(alertmanagerProperties, settings);
+      }
+    } else {
+      alertmanagerUri = URI.create(host.replaceAll("/$", "") + "/alertmanager");
+    }
+
+    return new PrometheusClientImpl(
+        prometheusHttpClient, uri, alertmanagerHttpClient, alertmanagerUri);
   }
 }

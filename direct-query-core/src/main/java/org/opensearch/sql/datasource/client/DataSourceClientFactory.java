@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.datasource.client;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.inject.Inject;
@@ -17,8 +13,6 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.prometheus.client.PrometheusClient;
-import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
 import org.opensearch.sql.prometheus.utils.PrometheusClientUtils;
 
 /** Factory for creating data source clients based on the data source type. */
@@ -51,7 +45,8 @@ public class DataSourceClientFactory {
         throw new DataSourceClientException("Data source does not exist: " + dataSourceName);
       }
 
-      DataSourceMetadata metadata = dataSourceService.verifyDataSourceAccessAndGetRawMetadata(dataSourceName, null);
+      DataSourceMetadata metadata =
+          dataSourceService.verifyDataSourceAccessAndGetRawMetadata(dataSourceName, null);
       DataSourceType dataSourceType = metadata.getConnector();
 
       return (T) createClientForType(dataSourceType.name(), metadata);
@@ -84,51 +79,9 @@ public class DataSourceClientFactory {
       throws DataSourceClientException {
     switch (dataSourceType) {
       case "PROMETHEUS":
-        return createPrometheusClient(metadata);
+        return PrometheusClientUtils.createPrometheusClient(metadata, settings);
       default:
         throw new DataSourceClientException("Unsupported data source type: " + dataSourceType);
-    }
-  }
-
-  private PrometheusClient createPrometheusClient(DataSourceMetadata metadata) {
-    try {
-      // Validate and get Prometheus URI
-      String host = metadata.getProperties().get(PrometheusClientUtils.URI);
-      if (Objects.isNull(host)) {
-        throw new DataSourceClientException("Host is required for Prometheus data source");
-      }
-      URI uri = new URI(host);
-
-      // Get Prometheus HTTP client
-      var properties = metadata.getProperties();
-      var prometheusHttpClient = PrometheusClientUtils.getHttpClient(properties, settings);
-
-      // Check for Alertmanager configuration
-      if (PrometheusClientUtils.hasAlertManagerConfig(properties)) {
-        String alertmanagerHost = properties.get(PrometheusClientUtils.ALERTMANAGER_URI);
-        URI alertmanagerUri = new URI(alertmanagerHost);
-
-        // Get AlertManager properties and create client
-        Map<String, String> alertmanagerProperties =
-            PrometheusClientUtils.createAlertManagerProperties(properties);
-
-        if (!alertmanagerProperties.isEmpty()) {
-          // Create Alertmanager HTTP client with separate auth
-          var alertmanagerHttpClient =
-              PrometheusClientUtils.getHttpClient(alertmanagerProperties, settings);
-          return new PrometheusClientImpl(
-              prometheusHttpClient, uri, alertmanagerHttpClient, alertmanagerUri);
-        }
-
-        // Use same auth but different URI
-        return new PrometheusClientImpl(
-            prometheusHttpClient, uri, prometheusHttpClient, alertmanagerUri);
-      }
-
-      // Use standard client configuration
-      return new PrometheusClientImpl(prometheusHttpClient, uri);
-    } catch (URISyntaxException e) {
-      throw new DataSourceClientException("Invalid URI", e);
     }
   }
 }

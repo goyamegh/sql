@@ -122,63 +122,63 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
                   throw new IllegalArgumentException("Resource type cannot be null");
                 }
 
-                switch (request.getResourceType().toUpperCase()) {
-                  case "LABELS":
+                switch (request.getResourceType()) {
+                  case LABELS:
                     {
                       List<String> labels = client.getLabels(request.getQueryParams());
                       return GetDirectQueryResourcesResponse.withStringList(labels);
                     }
-                  case "LABEL":
+                  case LABEL:
                     {
                       List<String> labelValues =
                           client.getLabel(request.getResourceName(), request.getQueryParams());
                       return GetDirectQueryResourcesResponse.withStringList(labelValues);
                     }
-                  case "METADATA":
+                  case METADATA:
                     {
                       Map<String, List<MetricMetadata>> metadata =
                           client.getAllMetrics(request.getQueryParams());
                       return GetDirectQueryResourcesResponse.withMap(metadata);
                     }
-                  case "SERIES":
+                  case SERIES:
                     {
                       List<Map<String, String>> series = client.getSeries(request.getQueryParams());
                       return GetDirectQueryResourcesResponse.withList(series);
                     }
-                  case "ALERTS":
+                  case ALERTS:
                     {
                       JSONObject alerts = client.getAlerts();
                       return GetDirectQueryResourcesResponse.withMap(alerts.toMap());
                     }
-                  case "RULES":
+                  case RULES:
                     {
                       JSONObject rules = client.getRules(request.getQueryParams());
                       return GetDirectQueryResourcesResponse.withMap(rules.toMap());
                     }
-                  case "ALERTMANAGER_ALERTS":
+                  case ALERTMANAGER_ALERTS:
                     {
                       JSONArray alerts = client.getAlertmanagerAlerts(request.getQueryParams());
                       return GetDirectQueryResourcesResponse.withList(alerts.toList());
                     }
-                  case "ALERTMANAGER_ALERT_GROUPS":
+                  case ALERTMANAGER_ALERT_GROUPS:
                     {
                       JSONArray alertGroups =
                           client.getAlertmanagerAlertGroups(request.getQueryParams());
                       return GetDirectQueryResourcesResponse.withList(alertGroups.toList());
                     }
-                  case "ALERTMANAGER_RECEIVERS":
+                  case ALERTMANAGER_RECEIVERS:
                     {
                       JSONArray receivers = client.getAlertmanagerReceivers();
                       return GetDirectQueryResourcesResponse.withList(receivers.toList());
                     }
-                  case "ALERTMANAGER_SILENCES":
+                  case ALERTMANAGER_SILENCES:
                     {
                       JSONArray silences = client.getAlertmanagerSilences();
                       return GetDirectQueryResourcesResponse.withList(silences.toList());
                     }
                   default:
                     throw new IllegalArgumentException(
-                        "Invalid resource type: " + request.getResourceType());
+                        "Invalid prometheus resource type: " + request.getResourceType());
                 }
               } catch (IOException e) {
                 LOG.error("Error getting resources", e);

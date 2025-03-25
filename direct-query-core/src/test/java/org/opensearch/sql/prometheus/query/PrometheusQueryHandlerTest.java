@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
@@ -232,7 +234,7 @@ public class PrometheusQueryHandlerTest {
   public void testGetResourcesLabels() throws IOException {
     // Setup
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
-    request.setResourceType("LABELS");
+    request.setResourceType(DirectQueryResourceType.LABELS);
     Map<String, String> queryParams = new HashMap<>();
     request.setQueryParams(queryParams);
 
@@ -251,7 +253,7 @@ public class PrometheusQueryHandlerTest {
   public void testGetResourcesLabel() throws IOException {
     // Setup
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
-    request.setResourceType("LABEL");
+    request.setResourceType(DirectQueryResourceType.LABEL);
     request.setResourceName("job");
     Map<String, String> queryParams = new HashMap<>();
     request.setQueryParams(queryParams);
@@ -271,7 +273,7 @@ public class PrometheusQueryHandlerTest {
   public void testGetResourcesMetadata() throws IOException {
     // Setup
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
-    request.setResourceType("METADATA");
+    request.setResourceType(DirectQueryResourceType.METADATA);
     Map<String, String> queryParams = new HashMap<>();
     request.setQueryParams(queryParams);
 
@@ -292,7 +294,7 @@ public class PrometheusQueryHandlerTest {
   public void testGetResourcesSeries() throws IOException {
     // Setup
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
-    request.setResourceType("SERIES");
+    request.setResourceType(DirectQueryResourceType.SERIES);
     Map<String, String> queryParams = new HashMap<>();
     request.setQueryParams(queryParams);
 
@@ -311,10 +313,20 @@ public class PrometheusQueryHandlerTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testGetResourcesInvalidType() throws IOException {
+  public void testGetResourcesInvalidType() {
     // Setup
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
-    request.setResourceType("INVALID_TYPE");
+    request.setResourceTypeFromString("INVALID_TYPE");
+
+    // Test - should throw exception
+    handler.getResources(prometheusClient, request);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testGetResourcesUnknownType() {
+    // Setup
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.UNKNOWN);
 
     // Test - should throw exception
     handler.getResources(prometheusClient, request);
@@ -324,7 +336,7 @@ public class PrometheusQueryHandlerTest {
   public void testGetResourcesIOException() throws IOException {
     // Setup
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
-    request.setResourceType("LABELS");
+    request.setResourceType(DirectQueryResourceType.LABELS);
     Map<String, String> queryParams = new HashMap<>();
     request.setQueryParams(queryParams);
 
@@ -393,5 +405,240 @@ public class PrometheusQueryHandlerTest {
 
     // Test - should throw exception
     handler.getResources(prometheusClient, request);
+  }
+
+  @Test
+  public void testGetResourcesAlerts() throws IOException {
+    // Setup
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTS);
+
+    JSONObject alertsJson = new JSONObject();
+    alertsJson.put("status", "success");
+    alertsJson.put(
+        "data",
+        new JSONObject()
+            .put(
+                "alerts",
+                new JSONObject()
+                    .put(
+                        "alerts",
+                        Arrays.asList(
+                            new JSONObject()
+                                .put("name", "HighCPULoad")
+                                .put("state", "firing")
+                                .put("activeAt", "2023-01-01T00:00:00Z"),
+                            new JSONObject()
+                                .put("name", "InstanceDown")
+                                .put("state", "pending")
+                                .put("activeAt", "2023-01-01T00:05:00Z")))));
+
+    when(prometheusClient.getAlerts()).thenReturn(alertsJson);
+
+    // Test
+    GetDirectQueryResourcesResponse<?> response = handler.getResources(prometheusClient, request);
+
+    // Verify
+    assertNotNull(response);
+    Map<?, ?> data = (Map<?, ?>) response.getData();
+    assertEquals("success", data.get("status"));
+    assertTrue(data.containsKey("data"));
+  }
+
+  @Test
+  public void testGetResourcesRules() throws IOException {
+    // Setup
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.RULES);
+    Map<String, String> queryParams = new HashMap<>();
+    request.setQueryParams(queryParams);
+
+    JSONObject rulesJson = new JSONObject();
+    rulesJson.put("status", "success");
+    rulesJson.put(
+        "data",
+        new JSONObject()
+            .put(
+                "groups",
+                Arrays.asList(
+                    new JSONObject()
+                        .put("name", "example")
+                        .put(
+                            "rules",
+                            Arrays.asList(
+                                new JSONObject()
+                                    .put("name", "HighErrorRate")
+                                    .put(
+                                        "query",
+                                        "rate(http_requests_total{status=~\"5..\"}[5m]) > 0.5")
+                                    .put("type", "alerting"),
+                                new JSONObject()
+                                    .put("name", "RequestRate")
+                                    .put("query", "rate(http_requests_total[5m])")
+                                    .put("type", "recording"))))));
+
+    when(prometheusClient.getRules(queryParams)).thenReturn(rulesJson);
+
+    // Test
+    GetDirectQueryResourcesResponse<?> response = handler.getResources(prometheusClient, request);
+
+    // Verify
+    assertNotNull(response);
+    Map<?, ?> data = (Map<?, ?>) response.getData();
+    assertEquals("success", data.get("status"));
+    assertTrue(data.containsKey("data"));
+  }
+
+  @Test
+  public void testGetResourcesAlertmanagerAlerts() throws IOException {
+    // Setup
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_ALERTS);
+    Map<String, String> queryParams = new HashMap<>();
+    request.setQueryParams(queryParams);
+
+    JSONObject alert1 =
+        new JSONObject()
+            .put("status", "firing")
+            .put(
+                "labels",
+                new JSONObject().put("alertname", "HighCPULoad").put("severity", "critical"))
+            .put(
+                "annotations",
+                new JSONObject()
+                    .put("summary", "High CPU load on instance")
+                    .put("description", "CPU load is above 90%"));
+
+    JSONObject alert2 =
+        new JSONObject()
+            .put("status", "resolved")
+            .put(
+                "labels",
+                new JSONObject().put("alertname", "InstanceDown").put("severity", "critical"))
+            .put(
+                "annotations",
+                new JSONObject()
+                    .put("summary", "Instance is down")
+                    .put("description", "Instance has been down for more than 5 minutes"));
+
+    JSONArray alertsArray = new JSONArray();
+    alertsArray.put(alert1);
+    alertsArray.put(alert2);
+
+    when(prometheusClient.getAlertmanagerAlerts(queryParams)).thenReturn(alertsArray);
+
+    // Test
+    GetDirectQueryResourcesResponse<?> response = handler.getResources(prometheusClient, request);
+
+    // Verify
+    assertNotNull(response);
+    List<?> data = (List<?>) response.getData();
+    assertEquals(2, data.size());
+  }
+
+  @Test
+  public void testGetResourcesAlertmanagerAlertGroups() throws IOException {
+    // Setup
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_ALERT_GROUPS);
+    Map<String, String> queryParams = new HashMap<>();
+    request.setQueryParams(queryParams);
+
+    JSONObject group1 =
+        new JSONObject()
+            .put("labels", new JSONObject().put("severity", "critical"))
+            .put(
+                "alerts",
+                new JSONArray()
+                    .put(
+                        new JSONObject()
+                            .put("status", "firing")
+                            .put(
+                                "labels",
+                                new JSONObject()
+                                    .put("alertname", "HighCPULoad")
+                                    .put("severity", "critical"))));
+
+    JSONObject group2 =
+        new JSONObject()
+            .put("labels", new JSONObject().put("severity", "warning"))
+            .put(
+                "alerts",
+                new JSONArray()
+                    .put(
+                        new JSONObject()
+                            .put("status", "firing")
+                            .put(
+                                "labels",
+                                new JSONObject()
+                                    .put("alertname", "HighMemoryUsage")
+                                    .put("severity", "warning"))));
+
+    JSONArray groupsArray = new JSONArray();
+    groupsArray.put(group1);
+    groupsArray.put(group2);
+
+    when(prometheusClient.getAlertmanagerAlertGroups(queryParams)).thenReturn(groupsArray);
+
+    // Test
+    GetDirectQueryResourcesResponse<?> response = handler.getResources(prometheusClient, request);
+
+    // Verify
+    assertNotNull(response);
+    List<?> data = (List<?>) response.getData();
+    assertEquals(2, data.size());
+  }
+
+  @Test
+  public void testGetResourcesAlertmanagerReceivers() throws IOException {
+    // Setup
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_RECEIVERS);
+
+    JSONArray receiversArray = new JSONArray();
+    receiversArray.put(new JSONObject().put("name", "email-notifications"));
+    receiversArray.put(new JSONObject().put("name", "slack-alerts"));
+    receiversArray.put(new JSONObject().put("name", "pagerduty"));
+
+    when(prometheusClient.getAlertmanagerReceivers()).thenReturn(receiversArray);
+
+    // Test
+    GetDirectQueryResourcesResponse<?> response = handler.getResources(prometheusClient, request);
+
+    // Verify
+    assertNotNull(response);
+    List<?> data = (List<?>) response.getData();
+    assertEquals(3, data.size());
+  }
+
+  @Test
+  public void testGetResourcesAlertmanagerSilences() throws IOException {
+    // Setup
+    GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+
+    JSONArray silencesArray = new JSONArray();
+    silencesArray.put(
+        new JSONObject()
+            .put("id", "silence-1")
+            .put("status", "active")
+            .put("createdBy", "admin")
+            .put("comment", "Maintenance window"));
+    silencesArray.put(
+        new JSONObject()
+            .put("id", "silence-2")
+            .put("status", "expired")
+            .put("createdBy", "admin")
+            .put("comment", "Weekend maintenance"));
+
+    when(prometheusClient.getAlertmanagerSilences()).thenReturn(silencesArray);
+
+    // Test
+    GetDirectQueryResourcesResponse<?> response = handler.getResources(prometheusClient, request);
+
+    // Verify
+    assertNotNull(response);
+    List<?> data = (List<?>) response.getData();
+    assertEquals(2, data.size());
   }
 }

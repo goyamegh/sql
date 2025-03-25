@@ -67,21 +67,15 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
         new Route(
             GET,
             String.format(
-                Locale.ROOT, "%s/alertmanager/api/v2/alerts", BASE_DIRECT_QUERY_RESOURCES_URL)),
-        new Route(
-            GET,
-            String.format(
                 Locale.ROOT,
                 "%s/alertmanager/api/v2/alerts/groups",
                 BASE_DIRECT_QUERY_RESOURCES_URL)),
         new Route(
             GET,
             String.format(
-                Locale.ROOT, "%s/alertmanager/api/v2/receivers", BASE_DIRECT_QUERY_RESOURCES_URL)),
-        new Route(
-            GET,
-            String.format(
-                Locale.ROOT, "%s/alertmanager/api/v2/silences", BASE_DIRECT_QUERY_RESOURCES_URL)));
+                Locale.ROOT,
+                "%s/alertmanager/api/v2/{resourceType}",
+                BASE_DIRECT_QUERY_RESOURCES_URL)));
   }
 
   @Override

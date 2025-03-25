@@ -5,9 +5,11 @@
 
 package org.opensearch.sql.directquery.transport.format;
 
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 
 @UtilityClass
@@ -27,26 +29,26 @@ public class DirectQueryResourcesRequestConverter {
     if (path.contains("/alertmanager/api/v2/")) {
       // Handle Alertmanager API endpoints
       if (path.contains("/alerts/groups")) {
-        directQueryRequest.setResourceType("alertmanager_alert_groups");
-      } else if (path.contains("/alerts")) {
-        directQueryRequest.setResourceType("alertmanager_alerts");
-      } else if (path.contains("/receivers")) {
-        directQueryRequest.setResourceType("alertmanager_receivers");
-      } else if (path.contains("/silences")) {
-        directQueryRequest.setResourceType("alertmanager_silences");
+        directQueryRequest.setResourceType(DirectQueryResourceType.ALERTMANAGER_ALERT_GROUPS);
+      } else {
+        directQueryRequest.setResourceType(
+            DirectQueryResourceType.fromString(
+                "alertmanager_" + restRequest.param("resourceType")));
       }
     } else {
-      // Handle standard API endpoints
-      directQueryRequest.setResourceType(restRequest.param("resourceType"));
+      directQueryRequest.setResourceTypeFromString(restRequest.param("resourceType"));
       if (restRequest.param("resourceName") != null) {
         directQueryRequest.setResourceName(restRequest.param("resourceName"));
       }
     }
 
-    directQueryRequest.setQueryParams(
-        restRequest.params().keySet().stream()
-            .filter(p -> !restRequest.consumedParams().contains(p))
-            .collect(Collectors.toMap(p -> p, restRequest::param)));
+    Map<String, String> queryParams = new HashMap<>();
+    for (String key : restRequest.params().keySet()) {
+      if (!restRequest.consumedParams().contains(key)) {
+        queryParams.put(key, restRequest.param(key));
+      }
+    }
+    directQueryRequest.setQueryParams(queryParams);
 
     return directQueryRequest;
   }

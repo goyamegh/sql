@@ -25,7 +25,10 @@ public class GetDirectQueryResourcesActionRequest extends ActionRequest {
     super(in);
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
     request.setDataSource(in.readOptionalString());
-    request.setResourceType(in.readOptionalString());
+    String resourceTypeStr = in.readOptionalString();
+    if (resourceTypeStr != null) {
+      request.setResourceTypeFromString(resourceTypeStr);
+    }
     request.setResourceName(in.readOptionalString());
     request.setQueryParams(in.readMap(StreamInput::readString, StreamInput::readString));
     this.directQueryRequest = request;
@@ -35,7 +38,10 @@ public class GetDirectQueryResourcesActionRequest extends ActionRequest {
   public void writeTo(StreamOutput out) throws IOException {
     super.writeTo(out);
     out.writeOptionalString(directQueryRequest.getDataSource());
-    out.writeOptionalString(directQueryRequest.getResourceType());
+    out.writeOptionalString(
+        directQueryRequest.getResourceType() != null
+            ? directQueryRequest.getResourceType().name()
+            : null);
     out.writeOptionalString(directQueryRequest.getResourceName());
     out.writeMap(
         directQueryRequest.getQueryParams(), StreamOutput::writeString, StreamOutput::writeString);

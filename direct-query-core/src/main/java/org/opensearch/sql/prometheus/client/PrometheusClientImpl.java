@@ -31,26 +31,27 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   private static final Logger logger = LogManager.getLogger(PrometheusClientImpl.class);
 
-  private final OkHttpClient okHttpClient;
-  private final OkHttpClient alertmanagerHttpClient; // Separate client for Alertmanager
+  private final OkHttpClient prometheusHttpClient;
+  private final OkHttpClient alertmanagerHttpClient;
 
-  private final URI uri;
-  private final URI alertmanagerUri; // Separate URI for Alertmanager
+  private final URI prometheusUri;
+  private final URI alertmanagerUri;
 
-  public PrometheusClientImpl(OkHttpClient okHttpClient, URI uri) {
-    this.okHttpClient = okHttpClient;
-    this.uri = uri;
-    this.alertmanagerHttpClient = okHttpClient; // Use same client for backwards compatibility
-    this.alertmanagerUri = uri; // Use same URI for backwards compatibility
+  public PrometheusClientImpl(OkHttpClient prometheusHttpClient, URI prometheusUri) {
+    this(
+        prometheusHttpClient,
+        prometheusUri,
+        prometheusHttpClient,
+        URI.create(prometheusUri.toString().replaceAll("/$", "") + "/alertmanager"));
   }
 
   public PrometheusClientImpl(
-      OkHttpClient okHttpClient,
-      URI uri,
+      OkHttpClient prometheusHttpClient,
+      URI prometheusUri,
       OkHttpClient alertmanagerHttpClient,
       URI alertmanagerUri) {
-    this.okHttpClient = okHttpClient;
-    this.uri = uri;
+    this.prometheusHttpClient = prometheusHttpClient;
+    this.prometheusUri = prometheusUri;
     this.alertmanagerHttpClient = alertmanagerHttpClient;
     this.alertmanagerUri = alertmanagerUri;
   }
@@ -78,13 +79,14 @@ public class PrometheusClientImpl implements PrometheusClient {
       throws IOException {
     String queryString = buildQueryString(query, start, end, step, limit, timeout);
     String queryUrl =
-        String.format("%s/api/v1/query_range%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format(
+            "%s/api/v1/query_range%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
 
     logger.debug("Making Prometheus query_range request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
 
     logger.debug("Executing Prometheus request with headers: {}", request.headers().toString());
-    Response response = this.okHttpClient.newCall(request).execute();
+    Response response = this.prometheusHttpClient.newCall(request).execute();
 
     logger.debug("Received Prometheus response for query_range: code={}", response);
 
@@ -112,13 +114,14 @@ public class PrometheusClientImpl implements PrometheusClient {
     String queryString = this.paramsToQueryString(params);
 
     String queryUrl =
-        String.format("%s/api/v1/query%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format(
+            "%s/api/v1/query%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
 
     logger.info("Making Prometheus instant query request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
 
     logger.info("Executing Prometheus request with headers: {}", request.headers().toString());
-    Response response = this.okHttpClient.newCall(request).execute();
+    Response response = this.prometheusHttpClient.newCall(request).execute();
 
     logger.info("Received Prometheus response for instant query: code={}", response);
     // Return the full response object, not just the data field
@@ -134,10 +137,11 @@ public class PrometheusClientImpl implements PrometheusClient {
   public List<String> getLabels(Map<String, String> queryParams) throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
-        String.format("%s/api/v1/labels%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format(
+            "%s/api/v1/labels%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.okHttpClient.newCall(request).execute();
+    Response response = this.prometheusHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     return toListOfLabels(jsonObject.getJSONArray("data"));
   }
@@ -149,10 +153,10 @@ public class PrometheusClientImpl implements PrometheusClient {
     String queryUrl =
         String.format(
             "%s/api/v1/label/%s/values%s",
-            uri.toString().replaceAll("/$", ""), labelName, queryString);
+            prometheusUri.toString().replaceAll("/$", ""), labelName, queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.okHttpClient.newCall(request).execute();
+    Response response = this.prometheusHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     return toListOfLabels(jsonObject.getJSONArray("data"));
   }
@@ -162,10 +166,11 @@ public class PrometheusClientImpl implements PrometheusClient {
       throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
-        String.format("%s/api/v1/metadata%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format(
+            "%s/api/v1/metadata%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.okHttpClient.newCall(request).execute();
+    Response response = this.prometheusHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     TypeReference<HashMap<String, List<MetricMetadata>>> typeRef = new TypeReference<>() {};
     return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
@@ -180,10 +185,11 @@ public class PrometheusClientImpl implements PrometheusClient {
   public List<Map<String, String>> getSeries(Map<String, String> queryParams) throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
-        String.format("%s/api/v1/series%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format(
+            "%s/api/v1/series%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.okHttpClient.newCall(request).execute();
+    Response response = this.prometheusHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     JSONArray dataArray = jsonObject.getJSONArray("data");
     return toListOfSeries(dataArray);
@@ -194,23 +200,24 @@ public class PrometheusClientImpl implements PrometheusClient {
     String queryUrl =
         String.format(
             "%s/api/v1/query_exemplars?query=%s&start=%s&end=%s",
-            uri.toString().replaceAll("/$", ""),
+            prometheusUri.toString().replaceAll("/$", ""),
             URLEncoder.encode(query, StandardCharsets.UTF_8),
             start,
             end);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.okHttpClient.newCall(request).execute();
+    Response response = this.prometheusHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONArray("data");
   }
 
   @Override
   public JSONObject getAlerts() throws IOException {
-    String queryUrl = String.format("%s/api/v1/alerts", uri.toString().replaceAll("/$", ""));
+    String queryUrl =
+        String.format("%s/api/v1/alerts", prometheusUri.toString().replaceAll("/$", ""));
     logger.debug("Making Prometheus alerts request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.okHttpClient.newCall(request).execute();
+    Response response = this.prometheusHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONObject("data");
   }
@@ -219,10 +226,11 @@ public class PrometheusClientImpl implements PrometheusClient {
   public JSONObject getRules(Map<String, String> queryParams) throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
     String queryUrl =
-        String.format("%s/api/v1/rules%s", uri.toString().replaceAll("/$", ""), queryString);
+        String.format(
+            "%s/api/v1/rules%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("Making Prometheus rules request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.okHttpClient.newCall(request).execute();
+    Response response = this.prometheusHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONObject("data");
   }
@@ -230,22 +238,11 @@ public class PrometheusClientImpl implements PrometheusClient {
   @Override
   public JSONArray getAlertmanagerAlerts(Map<String, String> queryParams) throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
-
-    // Use dedicated alertmanager URI if available, or fall back to default with path
-    String baseUrl;
-    if (alertmanagerUri != null && !alertmanagerUri.toString().equals(uri.toString())) {
-      // Use dedicated Alertmanager endpoint
-      baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
-    } else {
-      // Fall back to Prometheus endpoint with alertmanager path
-      baseUrl = String.format("%s/alertmanager", uri.toString().replaceAll("/$", ""));
-    }
-
+    String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
     String queryUrl = String.format("%s/api/v2/alerts%s", baseUrl, queryString);
+
     logger.debug("Making Alertmanager alerts request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-
-    // Use dedicated alertmanager client if available, or fall back to default
     Response response = this.alertmanagerHttpClient.newCall(request).execute();
 
     return readAlertmanagerResponse(response);
@@ -254,18 +251,9 @@ public class PrometheusClientImpl implements PrometheusClient {
   @Override
   public JSONArray getAlertmanagerAlertGroups(Map<String, String> queryParams) throws IOException {
     String queryString = this.paramsToQueryString(queryParams);
-
-    // Use dedicated alertmanager URI if available, or fall back to default with path
-    String baseUrl;
-    if (alertmanagerUri != null && !alertmanagerUri.toString().equals(uri.toString())) {
-      // Use dedicated Alertmanager endpoint
-      baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
-    } else {
-      // Fall back to Prometheus endpoint with alertmanager path
-      baseUrl = String.format("%s/alertmanager", uri.toString().replaceAll("/$", ""));
-    }
-
+    String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
     String queryUrl = String.format("%s/api/v2/alerts/groups%s", baseUrl, queryString);
+
     logger.debug("Making Alertmanager alert groups request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.alertmanagerHttpClient.newCall(request).execute();
@@ -275,17 +263,9 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public JSONArray getAlertmanagerReceivers() throws IOException {
-    // Use dedicated alertmanager URI if available, or fall back to default with path
-    String baseUrl;
-    if (alertmanagerUri != null && !alertmanagerUri.toString().equals(uri.toString())) {
-      // Use dedicated Alertmanager endpoint
-      baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
-    } else {
-      // Fall back to Prometheus endpoint with alertmanager path
-      baseUrl = String.format("%s/alertmanager", uri.toString().replaceAll("/$", ""));
-    }
-
+    String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
     String queryUrl = String.format("%s/api/v2/receivers", baseUrl);
+
     logger.debug("Making Alertmanager receivers request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.alertmanagerHttpClient.newCall(request).execute();
@@ -295,17 +275,9 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public JSONArray getAlertmanagerSilences() throws IOException {
-    // Use dedicated alertmanager URI if available, or fall back to default with path
-    String baseUrl;
-    if (alertmanagerUri != null && !alertmanagerUri.toString().equals(uri.toString())) {
-      // Use dedicated Alertmanager endpoint
-      baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
-    } else {
-      // Fall back to Prometheus endpoint with alertmanager path
-      baseUrl = String.format("%s/alertmanager", uri.toString().replaceAll("/$", ""));
-    }
-
+    String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
     String queryUrl = String.format("%s/api/v2/silences", baseUrl);
+
     logger.debug("Making Alertmanager silences request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.alertmanagerHttpClient.newCall(request).execute();

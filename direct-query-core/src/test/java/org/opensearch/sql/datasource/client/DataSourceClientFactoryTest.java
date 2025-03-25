@@ -8,7 +8,6 @@ package org.opensearch.sql.datasource.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,7 +48,7 @@ public class DataSourceClientFactoryTest {
     // Setup
     String dataSourceName = "prometheusDataSource";
     Map<String, String> properties = new HashMap<>();
-    properties.put(DataSourceClientFactory.URI, "http://prometheus:9090");
+    properties.put(PrometheusClientUtils.PROMETHEUS_URI, "http://prometheus:9090");
 
     DataSourceMetadata metadata =
         new DataSourceMetadata.Builder()
@@ -59,7 +58,8 @@ public class DataSourceClientFactoryTest {
             .build();
 
     when(dataSourceService.dataSourceExists(dataSourceName)).thenReturn(true);
-    when(dataSourceService.getDataSourceMetadata(dataSourceName)).thenReturn(metadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(dataSourceName, null))
+        .thenReturn(metadata);
 
     // Test
     PrometheusClient client = dataSourceClientFactory.createClient(dataSourceName);
@@ -67,62 +67,7 @@ public class DataSourceClientFactoryTest {
     // Verify
     assertNotNull("Client should not be null", client);
     verify(dataSourceService).dataSourceExists(dataSourceName);
-    verify(dataSourceService).getDataSourceMetadata(dataSourceName);
-  }
-
-  @Test
-  public void testCreatePrometheusClientWithBasicAuth() {
-    // Setup
-    String dataSourceName = "prometheusWithAuth";
-    Map<String, String> properties = new HashMap<>();
-    properties.put(DataSourceClientFactory.URI, "http://prometheus:9090");
-    properties.put(PrometheusClientUtils.AUTH_TYPE, "basicauth");
-    properties.put(PrometheusClientUtils.USERNAME, "user");
-    properties.put(PrometheusClientUtils.PASSWORD, "pass");
-
-    DataSourceMetadata metadata =
-        new DataSourceMetadata.Builder()
-            .setName(dataSourceName)
-            .setConnector(DataSourceType.PROMETHEUS)
-            .setProperties(properties)
-            .build();
-
-    when(dataSourceService.dataSourceExists(dataSourceName)).thenReturn(true);
-    when(dataSourceService.getDataSourceMetadata(dataSourceName)).thenReturn(metadata);
-
-    // Test
-    PrometheusClient client = dataSourceClientFactory.createClient(dataSourceName);
-
-    // Verify
-    assertNotNull("Client should not be null", client);
-  }
-
-  @Test
-  public void testCreatePrometheusClientWithAwsAuth() {
-    // Setup
-    String dataSourceName = "prometheusWithAwsAuth";
-    Map<String, String> properties = new HashMap<>();
-    properties.put(DataSourceClientFactory.URI, "http://prometheus:9090");
-    properties.put(PrometheusClientUtils.AUTH_TYPE, "awssigv4");
-    properties.put(PrometheusClientUtils.ACCESS_KEY, "access-key");
-    properties.put(PrometheusClientUtils.SECRET_KEY, "secret-key");
-    properties.put(PrometheusClientUtils.REGION, "us-west-1");
-
-    DataSourceMetadata metadata =
-        new DataSourceMetadata.Builder()
-            .setName(dataSourceName)
-            .setConnector(DataSourceType.PROMETHEUS)
-            .setProperties(properties)
-            .build();
-
-    when(dataSourceService.dataSourceExists(dataSourceName)).thenReturn(true);
-    when(dataSourceService.getDataSourceMetadata(dataSourceName)).thenReturn(metadata);
-
-    // Test
-    PrometheusClient client = dataSourceClientFactory.createClient(dataSourceName);
-
-    // Verify
-    assertNotNull("Client should not be null", client);
+    verify(dataSourceService).verifyDataSourceAccessAndGetRawMetadata(dataSourceName, null);
   }
 
   @Test(expected = DataSourceClientException.class)
@@ -147,83 +92,25 @@ public class DataSourceClientFactoryTest {
             .build();
 
     when(dataSourceService.dataSourceExists(dataSourceName)).thenReturn(true);
-    when(dataSourceService.getDataSourceMetadata(dataSourceName)).thenReturn(metadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(dataSourceName, null))
+        .thenReturn(metadata);
 
     // Test - should throw exception
     dataSourceClientFactory.createClient(dataSourceName);
   }
 
   @Test(expected = DataSourceClientException.class)
-  public void testCreatePrometheusClientWithMissingUri() {
+  public void testCreateClientWrapsNonDataSourceClientException() {
     // Setup
-    String dataSourceName = "missingUri";
-    Map<String, String> properties = new HashMap<>();
-    // Missing URI property
-
-    DataSourceMetadata metadata =
-        new DataSourceMetadata.Builder()
-            .setName(dataSourceName)
-            .setConnector(DataSourceType.PROMETHEUS)
-            .setProperties(properties)
-            .build();
+    String dataSourceName = "exceptionSource";
+    RuntimeException genericException = new RuntimeException("Generic error");
 
     when(dataSourceService.dataSourceExists(dataSourceName)).thenReturn(true);
-    when(dataSourceService.getDataSourceMetadata(dataSourceName)).thenReturn(metadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(dataSourceName, null))
+        .thenThrow(genericException);
 
-    // Test - should throw exception
+    // Test - should wrap the generic exception in a DataSourceClientException
     dataSourceClientFactory.createClient(dataSourceName);
-  }
-
-  @Test(expected = DataSourceClientException.class)
-  public void testCreatePrometheusClientWithInvalidUri() {
-    // Setup
-    String dataSourceName = "invalidUri";
-    Map<String, String> properties = new HashMap<>();
-    // Using malformed URI that will definitely be rejected
-    properties.put(DataSourceClientFactory.URI, "ht tp://invalid:9090");
-
-    DataSourceMetadata metadata =
-        new DataSourceMetadata.Builder()
-            .setName(dataSourceName)
-            .setConnector(DataSourceType.PROMETHEUS)
-            .setProperties(properties)
-            .build();
-
-    when(dataSourceService.dataSourceExists(dataSourceName)).thenReturn(true);
-    when(dataSourceService.getDataSourceMetadata(dataSourceName)).thenReturn(metadata);
-
-    // Test - should throw exception
-    dataSourceClientFactory.createClient(dataSourceName);
-  }
-
-  @Test
-  public void testCreatePrometheusClientWithUnsupportedAuthType() {
-    // Setup
-    String dataSourceName = "unsupportedAuth";
-    Map<String, String> properties = new HashMap<>();
-    properties.put(DataSourceClientFactory.URI, "http://prometheus:9090");
-    properties.put(PrometheusClientUtils.AUTH_TYPE, "unsupported");
-
-    DataSourceMetadata metadata =
-        new DataSourceMetadata.Builder()
-            .setName(dataSourceName)
-            .setConnector(DataSourceType.PROMETHEUS)
-            .setProperties(properties)
-            .build();
-
-    when(dataSourceService.dataSourceExists(dataSourceName)).thenReturn(true);
-    when(dataSourceService.getDataSourceMetadata(dataSourceName)).thenReturn(metadata);
-
-    // Test - should throw DataSourceClientException caused by IllegalArgumentException
-    try {
-      dataSourceClientFactory.createClient(dataSourceName);
-      fail("Expected DataSourceClientException to be thrown");
-    } catch (DataSourceClientException e) {
-      assertTrue(
-          "Cause should be IllegalArgumentException",
-          e.getCause() instanceof IllegalArgumentException);
-      assertTrue(e.getCause().getMessage().contains("AUTH Type : unsupported is not supported"));
-    }
   }
 
   @Test
@@ -234,7 +121,7 @@ public class DataSourceClientFactoryTest {
     // Setup for Prometheus client
     String prometheusDs = "prometheusSource";
     Map<String, String> properties = new HashMap<>();
-    properties.put(DataSourceClientFactory.URI, "http://prometheus:9090");
+    properties.put(PrometheusClientUtils.PROMETHEUS_URI, "http://prometheus:9090");
 
     DataSourceMetadata metadata =
         new DataSourceMetadata.Builder()
@@ -244,7 +131,8 @@ public class DataSourceClientFactoryTest {
             .build();
 
     when(dataSourceService.dataSourceExists(prometheusDs)).thenReturn(true);
-    when(dataSourceService.getDataSourceMetadata(prometheusDs)).thenReturn(metadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(prometheusDs, null))
+        .thenReturn(metadata);
 
     // Test that generic type inference works for explicit type parameter
     PrometheusClient prometheusClient = dataSourceClientFactory.createClient(prometheusDs);

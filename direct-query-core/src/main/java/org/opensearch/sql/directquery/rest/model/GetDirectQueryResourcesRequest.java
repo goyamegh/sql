@@ -13,9 +13,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class GetDirectQueryResourcesRequest {
   private String dataSource;
-  private String resourceType;
+  private DirectQueryResourceType resourceType;
   private String resourceName;
 
   // Optional fields
   private Map<String, String> queryParams;
+
+  /**
+   * Sets the resource type from a string value.
+   *
+   * @param resourceTypeStr The resource type as a string
+   */
+  public void setResourceTypeFromString(String resourceTypeStr) {
+    if (resourceTypeStr != null) {
+      this.resourceType = DirectQueryResourceType.fromString(resourceTypeStr);
+    }
+  }
 }
